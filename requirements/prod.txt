@@ -1,0 +1,6 @@
+-r base.txt
+
+# Production specific dependencies
+gunicorn==21.2.*
+django-cors-headers==4.3.*
+sentry-sdk==1.38.*
