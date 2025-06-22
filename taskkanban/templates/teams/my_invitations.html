@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "我的邀请" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.invitation-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.invitation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.team-avatar {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+.invitation-actions {
+    gap: 0.5rem;
+}
+.invitation-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- 页面标题 -->
+            <div class="invitation-header p-4 mb-4 rounded">
+                <div class="text-center">
+                    <h2 class="mb-2">{% trans "我的邀请" %}</h2>
+                    <p class="mb-0 opacity-75">{% trans "查看和处理团队邀请" %}</p>
+                </div>
+            </div>
+
+            <!-- 邀请列表 -->
+            {% if invitations %}
+            <div class="row">
+                {% for invitation in invitations %}
+                <div class="col-md-12 mb-4">
+                    <div class="card invitation-card h-100">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <!-- 团队信息 -->
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ invitation.team.get_avatar_url }}" 
+                                             alt="{{ invitation.team.name }}"
+                                             class="team-avatar rounded me-3">
+                                        <div>
+                                            <h5 class="card-title mb-1">{{ invitation.team.name }}</h5>
+                                            <div class="mb-2">
+                                                <span class="badge bg-primary">{{ invitation.get_role_display }}</span>
+                                                {% if invitation.team.is_public %}
+                                                <span class="badge bg-success ms-1">{% trans "公开团队" %}</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary ms-1">{% trans "私有团队" %}</span>
+                                                {% endif %}
+                                            </div>
+                                            {% if invitation.team.description %}
+                                            <p class="text-muted small mb-0">{{ invitation.team.description|truncatechars:100 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 邀请信息 -->
+                                <div class="col-md-6">
+                                    <div class="text-md-end">
+                                        <div class="mb-2">
+                                            <strong>{% trans "邀请人：" %}</strong>
+                                            <span class="text-primary">{{ invitation.inviter.get_display_name }}</span>
+                                        </div>
+                                        
+                                        <div class="mb-2">
+                                            <strong>{% trans "邀请时间：" %}</strong>
+                                            <span class="text-muted">{{ invitation.created_at|date:"Y-m-d H:i" }}</span>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <strong>{% trans "过期时间：" %}</strong>
+                                            {% if invitation.is_expired %}
+                                            <span class="text-danger">{% trans "已过期" %}</span>
+                                            {% else %}
+                                            <span class="text-warning">{{ invitation.expires_at|date:"Y-m-d H:i" }}</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if invitation.message %}
+                                        <div class="mb-3">
+                                            <strong>{% trans "邀请消息：" %}</strong>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-quote-left me-1"></i>{{ invitation.message }}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 操作按钮 -->
+                        <div class="card-footer bg-transparent">
+                            {% if invitation.is_expired %}
+                            <div class="text-center">
+                                <span class="text-danger">
+                                    <i class="fas fa-clock me-2"></i>{% trans "邀请已过期" %}
+                                </span>
+                            </div>
+                            {% else %}
+                            <div class="d-flex invitation-actions justify-content-center">
+                                <form method="post" action="{% url 'teams:join' invitation.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="accept">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-2"></i>{% trans "接受邀请" %}
+                                    </button>
+                                </form>
+                                
+                                <form method="post" action="{% url 'teams:join' invitation.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="decline">
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="fas fa-times me-2"></i>{% trans "拒绝邀请" %}
+                                    </button>
+                                </form>
+                                
+                                <a href="{% url 'teams:detail' invitation.team.pk %}" class="btn btn-outline-info">
+                                    <i class="fas fa-eye me-2"></i>{% trans "查看团队" %}
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- 分页 -->
+            {% if is_paginated %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="{% trans '分页导航' %}">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                {% trans "上一页" %}
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                {% trans "下一页" %}
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- 空状态 -->
+            <div class="text-center py-5">
+                <i class="fas fa-envelope-open fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted">{% trans "暂无邀请" %}</h4>
+                <p class="text-muted">{% trans "你目前没有收到任何团队邀请" %}</p>
+                <a href="{% url 'teams:list' %}" class="btn btn-primary">
+                    <i class="fas fa-users me-2"></i>{% trans "浏览团队" %}
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- 返回按钮 -->
+            <div class="text-center mt-4">
+                <a href="{% url 'teams:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>{% trans "返回团队列表" %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 为表单添加确认提示
+    document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            const action = form.querySelector('input[name="action"]').value;
+            const teamName = form.closest('.card').querySelector('.card-title').textContent;
+            
+            let message = '';
+            if (action === 'accept') {
+                message = '{% trans "确定要接受加入" %} "' + teamName + '" {% trans "的邀请吗？" %}';
+            } else if (action === 'decline') {
+                message = '{% trans "确定要拒绝加入" %} "' + teamName + '" {% trans "的邀请吗？" %}';
+            }
+            
+            if (message && !confirm(message)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

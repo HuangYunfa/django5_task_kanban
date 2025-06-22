@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "创建团队" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border: 3px solid #e9ecef;
+}
+.feature-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- 页面标题 -->
+            <div class="text-center mb-4">
+                <h2 class="mb-2">{% trans "创建新团队" %}</h2>
+                <p class="text-muted">{% trans "建立你的团队，开始高效协作" %}</p>
+            </div>
+
+            <!-- 创建表单 -->
+            <div class="form-section p-4 mb-4">
+                <form method="post" enctype="multipart/form-data" id="teamForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- 基本信息 -->
+                        <div class="col-md-8">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle me-2 text-primary"></i>{% trans "基本信息" %}
+                            </h5>
+                            
+                            <!-- 团队名称 -->
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">
+                                    {{ form.name.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% trans "团队名称将显示在团队列表和所有相关页面中" %}
+                                </div>
+                            </div>
+                            
+                            <!-- 团队描述 -->
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">
+                                    {{ form.description.label }}
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% trans "简要描述团队的目标和用途" %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 头像上传 -->
+                        <div class="col-md-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-image me-2 text-primary"></i>{% trans "团队头像" %}
+                            </h5>
+                            
+                            <div class="text-center">
+                                <div class="mb-3">
+                                    <img id="avatarPreview" src="/static/images/default-team-avatar.png" 
+                                         alt="{% trans '头像预览' %}" class="avatar-preview rounded-circle">
+                                </div>
+                                
+                                {{ form.avatar }}
+                                {% if form.avatar.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.avatar.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% trans "支持 JPG、PNG 格式，建议尺寸 200x200 像素" %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- 团队设置 -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-cog me-2 text-primary"></i>{% trans "团队设置" %}
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                {{ form.is_public }}
+                                <label class="form-check-label" for="{{ form.is_public.id_for_label }}">
+                                    {{ form.is_public.label }}
+                                </label>
+                                <div class="form-text">
+                                    {% trans "公开团队允许任何人查看团队信息" %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                {{ form.allow_join_request }}
+                                <label class="form-check-label" for="{{ form.allow_join_request.id_for_label }}">
+                                    {{ form.allow_join_request.label }}
+                                </label>
+                                <div class="form-text">
+                                    {% trans "允许其他用户申请加入团队" %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- 提交按钮 -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'teams:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>{% trans "返回" %}
+                        </a>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus me-2"></i>{% trans "创建团队" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 功能说明 -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="d-flex align-items-start">
+                        <div class="feature-icon me-3">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{% trans "成员管理" %}</h6>
+                            <small class="text-muted">{% trans "邀请成员，分配角色权限" %}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="d-flex align-items-start">
+                        <div class="feature-icon me-3">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{% trans "任务协作" %}</h6>
+                            <small class="text-muted">{% trans "共享看板，协同完成任务" %}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="d-flex align-items-start">
+                        <div class="feature-icon me-3">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{% trans "数据分析" %}</h6>
+                            <small class="text-muted">{% trans "团队效率统计和报表" %}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 头像预览功能
+    const avatarInput = document.getElementById('{{ form.avatar.id_for_label }}');
+    const avatarPreview = document.getElementById('avatarPreview');
+    
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    avatarPreview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // 表单验证
+    const form = document.getElementById('teamForm');
+    form.addEventListener('submit', function(e) {
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        if (nameInput.value.trim().length < 2) {
+            e.preventDefault();
+            nameInput.classList.add('is-invalid');
+            alert('{% trans "团队名称至少需要2个字符" %}');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

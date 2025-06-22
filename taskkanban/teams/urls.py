@@ -18,4 +18,12 @@ urlpatterns = [
     path('<int:pk>/edit/', views.TeamUpdateView.as_view(), name='edit'),
     # 团队成员管理
     path('<int:pk>/members/', views.TeamMemberView.as_view(), name='members'),
+    # 邀请成员
+    path('<int:pk>/invite/', views.TeamInviteView.as_view(), name='invite'),
+    # 处理邀请（加入/拒绝）
+    path('invitation/<int:pk>/join/', views.TeamJoinView.as_view(), name='join'),
+    # 离开团队
+    path('<int:pk>/leave/', views.TeamLeaveView.as_view(), name='leave'),
+    # 我的邀请
+    path('my-invitations/', views.MyInvitationsView.as_view(), name='my_invitations'),
 ]

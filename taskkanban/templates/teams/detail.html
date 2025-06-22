@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ team.name }} - {% trans "团队详情" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.team-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+}
+.team-avatar {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,0.3);
+}
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+.stats-card {
+    transition: transform 0.2s;
+}
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+.activity-item {
+    border-left: 3px solid #e9ecef;
+    padding-left: 1rem;
+}
+.activity-item.recent {
+    border-left-color: #007bff;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 团队头部信息 -->
+    <div class="team-header p-4 mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <img src="{{ team.get_avatar_url }}" alt="{{ team.name }}" 
+                         class="team-avatar rounded-circle me-3">
+                    <div>
+                        <h2 class="mb-1">{{ team.name }}</h2>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-light text-dark me-2">
+                                {{ team.is_public|yesno:'公开团队,私有团队' }}
+                            </span>
+                            {% if user_membership %}
+                            <span class="badge bg-warning text-dark">
+                                {{ user_membership.get_role_display }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% if team.description %}
+                        <p class="mt-2 mb-0 opacity-75">{{ team.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 text-end">
+                {% if is_admin %}
+                <div class="btn-group">
+                    <a href="{% url 'teams:edit' team.pk %}" class="btn btn-light">
+                        <i class="fas fa-edit me-2"></i>{% trans "编辑" %}
+                    </a>
+                    <a href="{% url 'teams:members' team.pk %}" class="btn btn-light">
+                        <i class="fas fa-users me-2"></i>{% trans "管理成员" %}
+                    </a>
+                </div>
+                {% elif user_membership %}
+                <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#leaveTeamModal">
+                    <i class="fas fa-sign-out-alt me-2"></i>{% trans "离开团队" %}
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 团队统计 -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="h3 mb-0">{{ member_count }}</div>
+                    <small class="opacity-75">{% trans "团队成员" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="h3 mb-0">0</div>
+                    <small class="opacity-75">{% trans "活跃任务" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="h3 mb-0">0</div>
+                    <small class="opacity-75">{% trans "完成任务" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <div class="h3 mb-0">{{ team.created_at|timesince }}</div>
+                    <small class="opacity-75">{% trans "创建时间" %}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左侧：团队成员 -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>{% trans "团队成员" %} ({{ member_count }})
+                    </h5>
+                    {% if is_admin %}
+                    <a href="{% url 'teams:members' team.pk %}" class="btn btn-sm btn-outline-primary">
+                        {% trans "管理成员" %}
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if members %}
+                    <div class="row">
+                        {% for membership in members %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ membership.user.get_avatar_url }}" 
+                                     alt="{{ membership.user.get_display_name }}"
+                                     class="member-avatar rounded-circle me-3">
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">{{ membership.user.get_display_name }}</div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-{{ membership.role|yesno:'primary,secondary' }} me-2">
+                                            {{ membership.get_role_display }}
+                                        </span>
+                                        <small class="text-muted">
+                                            {% if membership.joined_at %}
+                                            {% trans "加入于" %} {{ membership.joined_at|date:"Y-m-d" }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3 text-muted">
+                        {% trans "暂无成员" %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 待处理邀请 -->
+            {% if is_admin and pending_invitations %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-envelope me-2"></i>{% trans "待处理邀请" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for invitation in pending_invitations %}
+                    <div class="d-flex justify-content-between align-items-center {% if not forloop.last %}border-bottom pb-2 mb-2{% endif %}">
+                        <div>
+                            <strong>{{ invitation.invitee.get_display_name }}</strong>
+                            <span class="badge bg-info ms-2">{{ invitation.get_role_display }}</span>
+                            <br>
+                            <small class="text-muted">
+                                {% trans "邀请人：" %}{{ invitation.inviter.get_display_name }} | 
+                                {% trans "发送时间：" %}{{ invitation.created_at|date:"Y-m-d H:i" }}
+                            </small>
+                        </div>
+                        <div>
+                            <small class="text-muted">
+                                {% if invitation.is_expired %}
+                                <span class="text-danger">{% trans "已过期" %}</span>
+                                {% else %}
+                                {% trans "过期时间：" %}{{ invitation.expires_at|date:"Y-m-d" }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- 右侧：团队信息 -->
+        <div class="col-lg-4">
+            <!-- 团队信息卡片 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>{% trans "团队信息" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>{% trans "创建者：" %}</strong>
+                        <div class="d-flex align-items-center mt-1">
+                            <img src="{{ team.created_by.get_avatar_url }}" 
+                                 alt="{{ team.created_by.get_display_name }}"
+                                 class="member-avatar rounded-circle me-2">
+                            <span>{{ team.created_by.get_display_name }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>{% trans "创建时间：" %}</strong>
+                        <div>{{ team.created_at|date:"Y年m月d日 H:i" }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>{% trans "团队设置：" %}</strong>
+                        <div class="mt-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" disabled 
+                                       {% if team.is_public %}checked{% endif %}>
+                                <label class="form-check-label">{% trans "公开团队" %}</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" disabled 
+                                       {% if team.allow_join_request %}checked{% endif %}>
+                                <label class="form-check-label">{% trans "允许加入申请" %}</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if team.description %}
+                    <div class="mb-3">
+                        <strong>{% trans "团队描述：" %}</strong>
+                        <div class="mt-1 text-muted">{{ team.description }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 快速操作 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>{% trans "快速操作" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-outline-primary">
+                            <i class="fas fa-tasks me-2"></i>{% trans "查看团队任务" %}
+                        </a>
+                        <a href="#" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar me-2"></i>{% trans "团队报表" %}
+                        </a>
+                        {% if is_admin %}
+                        <a href="{% url 'teams:members' team.pk %}" class="btn btn-outline-success">
+                            <i class="fas fa-user-plus me-2"></i>{% trans "邀请成员" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 离开团队确认模态框 -->
+{% if user_membership and user_membership.role != 'owner' %}
+<div class="modal fade" id="leaveTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "确认离开团队" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>{% trans "你确定要离开团队" %} <strong>{{ team.name }}</strong> {% trans "吗？" %}</p>
+                <p class="text-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {% trans "离开后将无法访问团队的任务和数据，除非重新被邀请。" %}
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {% trans "取消" %}
+                </button>
+                <form method="post" action="{% url 'teams:leave' team.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-sign-out-alt me-2"></i>{% trans "确认离开" %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

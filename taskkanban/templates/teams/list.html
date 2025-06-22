@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "团队列表" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.team-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #e9ecef;
+}
+.team-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.team-avatar {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+}
+.team-stats {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+.search-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 搜索区域 -->
+    <div class="search-section p-4 mb-4 rounded">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-1">{% trans "我的团队" %}</h2>
+                <p class="mb-0 opacity-75">{% trans "管理你的团队，协作完成任务" %}</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'teams:create' %}" class="btn btn-light">
+                    <i class="fas fa-plus me-2"></i>{% trans "创建团队" %}
+                </a>
+            </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-users fa-2x me-3 opacity-75"></i>
+                    <div>
+                        <div class="h4 mb-0">{{ my_teams_count }}</div>
+                        <small class="opacity-75">{% trans "参与的团队" %}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-envelope fa-2x me-3 opacity-75"></i>
+                    <div>
+                        <div class="h4 mb-0">{{ invitations_count }}</div>
+                        <small class="opacity-75">{% trans "待处理邀请" %}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <a href="{% url 'teams:my_invitations' %}" class="btn btn-outline-light btn-sm">
+                        {% trans "查看邀请" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索表单 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    {{ search_form.search }}
+                </div>
+                <div class="col-md-3">
+                    {{ search_form.is_public }}
+                </div>
+                <div class="col-md-3">
+                    {{ search_form.role }}
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>{% trans "搜索" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 团队列表 -->
+    <div class="row">
+        {% for team in teams %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card team-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <img src="{{ team.get_avatar_url }}" alt="{{ team.name }}" 
+                             class="team-avatar rounded me-3">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">
+                                <a href="{% url 'teams:detail' team.pk %}" class="text-decoration-none">
+                                    {{ team.name }}
+                                </a>
+                            </h5>
+                            <div class="team-stats">
+                                <span class="badge bg-{{ team.is_public|yesno:'success,secondary' }} me-2">
+                                    {{ team.is_public|yesno:'公开,私有' }}
+                                </span>                                <small>
+                                    <i class="fas fa-users me-1"></i>{{ team.total_members }} {% trans "成员" %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if team.description %}
+                    <p class="card-text text-muted mb-3">{{ team.description|truncatechars:100 }}</p>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            {% trans "创建于" %} {{ team.created_at|date:"Y-m-d" }}
+                        </small>
+                        
+                        {% with team.memberships.all|first as membership %}
+                        {% if membership %}
+                        <span class="badge bg-primary">
+                            {{ membership.get_role_display }}
+                        </span>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'teams:detail' team.pk %}" class="btn btn-outline-primary btn-sm flex-grow-1">
+                            <i class="fas fa-eye me-1"></i>{% trans "查看" %}
+                        </a>
+                        
+                        {% with team.memberships.all|first as membership %}
+                        {% if membership.is_admin %}
+                        <a href="{% url 'teams:edit' team.pk %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'teams:members' team.pk %}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-users"></i>
+                        </a>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">{% trans "暂无团队" %}</h4>
+                <p class="text-muted">{% trans "创建你的第一个团队，开始协作吧！" %}</p>
+                <a href="{% url 'teams:create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>{% trans "创建团队" %}
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 分页 -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="{% trans '分页导航' %}">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                        {% trans "上一页" %}
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ num }}">
+                        {{ num }}
+                    </a>
+                </li>
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.next_page_number }}">
+                        {% trans "下一页" %}
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

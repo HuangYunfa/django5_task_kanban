@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "编辑团队" %} - {{ team.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border: 3px solid #e9ecef;
+}
+.current-avatar {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- 页面标题 -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{% url 'teams:detail' team.pk %}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h2 class="mb-1">{% trans "编辑团队" %}</h2>
+                    <p class="text-muted mb-0">{{ team.name }}</p>
+                </div>
+            </div>
+
+            <!-- 编辑表单 -->
+            <div class="form-section p-4 mb-4">
+                <form method="post" enctype="multipart/form-data" id="teamEditForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- 基本信息 -->
+                        <div class="col-md-8">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle me-2 text-primary"></i>{% trans "基本信息" %}
+                            </h5>
+                            
+                            <!-- 团队名称 -->
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">
+                                    {{ form.name.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% trans "团队名称将显示在团队列表和所有相关页面中" %}
+                                </div>
+                            </div>
+                            
+                            <!-- 团队描述 -->
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">
+                                    {{ form.description.label }}
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% trans "简要描述团队的目标和用途" %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 头像管理 -->
+                        <div class="col-md-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-image me-2 text-primary"></i>{% trans "团队头像" %}
+                            </h5>
+                            
+                            <div class="text-center">
+                                <!-- 当前头像 -->
+                                <div class="mb-3">
+                                    <p class="small text-muted mb-2">{% trans "当前头像" %}</p>
+                                    <img src="{{ team.get_avatar_url }}" alt="{% trans '当前头像' %}" 
+                                         class="current-avatar rounded-circle">
+                                </div>
+                                
+                                <!-- 新头像预览 -->
+                                <div class="mb-3" id="newAvatarSection" style="display: none;">
+                                    <p class="small text-muted mb-2">{% trans "新头像预览" %}</p>
+                                    <img id="avatarPreview" src="" alt="{% trans '新头像预览' %}" 
+                                         class="avatar-preview rounded-circle">
+                                </div>
+                                
+                                {{ form.avatar }}
+                                {% if form.avatar.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.avatar.errors.0 }}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% trans "支持 JPG、PNG 格式，建议尺寸 200x200 像素" %}
+                                </div>
+                                
+                                <!-- 清除头像按钮 -->
+                                {% if team.avatar %}
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="clearAvatarBtn">
+                                        <i class="fas fa-trash me-1"></i>{% trans "删除当前头像" %}
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- 团队设置 -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-cog me-2 text-primary"></i>{% trans "团队设置" %}
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                {{ form.is_public }}
+                                <label class="form-check-label" for="{{ form.is_public.id_for_label }}">
+                                    {{ form.is_public.label }}
+                                </label>
+                                <div class="form-text">
+                                    {% trans "公开团队允许任何人查看团队信息" %}
+                                </div>
+                                {% if form.is_public.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.is_public.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                {{ form.allow_join_request }}
+                                <label class="form-check-label" for="{{ form.allow_join_request.id_for_label }}">
+                                    {{ form.allow_join_request.label }}
+                                </label>
+                                <div class="form-text">
+                                    {% trans "允许其他用户申请加入团队" %}
+                                </div>
+                                {% if form.allow_join_request.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.allow_join_request.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- 提交按钮 -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'teams:detail' team.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>{% trans "取消" %}
+                        </a>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>{% trans "保存修改" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 危险操作区域 -->
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>{% trans "危险操作" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        {% trans "以下操作不可逆，请谨慎处理。" %}
+                    </p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>{% trans "转让团队所有权" %}</h6>
+                            <p class="small text-muted">{% trans "将团队所有权转让给其他管理员" %}</p>
+                            <button class="btn btn-outline-warning btn-sm" disabled>
+                                <i class="fas fa-exchange-alt me-2"></i>{% trans "转让所有权" %}
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6>{% trans "解散团队" %}</h6>
+                            <p class="small text-muted">{% trans "永久删除团队及所有相关数据" %}</p>
+                            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTeamModal">
+                                <i class="fas fa-trash me-2"></i>{% trans "解散团队" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除团队确认模态框 -->
+<div class="modal fade" id="deleteTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{% trans "确认解散团队" %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <strong>{% trans "警告：此操作不可逆！" %}</strong>
+                </div>
+                <p>{% trans "你即将解散团队" %} <strong>{{ team.name }}</strong>。</p>
+                <p>{% trans "解散后将会：" %}</p>
+                <ul>
+                    <li>{% trans "删除所有团队成员关系" %}</li>
+                    <li>{% trans "删除所有待处理邀请" %}</li>
+                    <li>{% trans "删除团队相关的所有数据" %}</li>
+                    <li>{% trans "此操作无法撤销" %}</li>
+                </ul>
+                
+                <div class="mb-3">
+                    <label class="form-label">
+                        {% trans "请输入团队名称以确认：" %} <strong>{{ team.name }}</strong>
+                    </label>
+                    <input type="text" class="form-control" id="confirmTeamName" 
+                           placeholder="{{ team.name }}">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {% trans "取消" %}
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                    <i class="fas fa-trash me-2"></i>{% trans "确认解散" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 头像预览功能
+    const avatarInput = document.getElementById('{{ form.avatar.id_for_label }}');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const newAvatarSection = document.getElementById('newAvatarSection');
+    
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    avatarPreview.src = e.target.result;
+                    newAvatarSection.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                newAvatarSection.style.display = 'none';
+            }
+        });
+    }
+    
+    // 清除头像功能
+    const clearAvatarBtn = document.getElementById('clearAvatarBtn');
+    if (clearAvatarBtn) {
+        clearAvatarBtn.addEventListener('click', function() {
+            if (confirm('{% trans "确定要删除当前头像吗？" %}')) {
+                // 这里需要实现清除头像的逻辑
+                // 通常是设置一个隐藏字段或者通过 AJAX 请求
+                alert('{% trans "头像清除功能待实现" %}');
+            }
+        });
+    }
+    
+    // 删除团队确认
+    const confirmTeamNameInput = document.getElementById('confirmTeamName');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const teamName = '{{ team.name }}';
+    
+    if (confirmTeamNameInput && confirmDeleteBtn) {
+        confirmTeamNameInput.addEventListener('input', function() {
+            confirmDeleteBtn.disabled = this.value !== teamName;
+        });
+        
+        confirmDeleteBtn.addEventListener('click', function() {
+            if (confirmTeamNameInput.value === teamName) {
+                alert('{% trans "团队删除功能待实现" %}');
+                // 这里实现删除团队的逻辑
+            }
+        });
+    }
+    
+    // 表单验证
+    const form = document.getElementById('teamEditForm');
+    form.addEventListener('submit', function(e) {
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        if (nameInput.value.trim().length < 2) {
+            e.preventDefault();
+            nameInput.classList.add('is-invalid');
+            alert('{% trans "团队名称至少需要2个字符" %}');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

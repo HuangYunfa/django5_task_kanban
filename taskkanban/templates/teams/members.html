@@ -1,0 +1,488 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "成员管理" %} - {{ team.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.member-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.member-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.member-avatar {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+.role-badge {
+    font-size: 0.75rem;
+}
+.invitation-card {
+    background: #f8f9fa;
+    border-left: 4px solid #ffc107;
+}
+.invite-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <a href="{% url 'teams:detail' team.pk %}" class="btn btn-outline-secondary me-3">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="mb-1">{% trans "成员管理" %}</h2>
+                <p class="text-muted mb-0">{{ team.name }}</p>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#inviteModal">
+            <i class="fas fa-user-plus me-2"></i>{% trans "邀请成员" %}
+        </button>
+    </div>
+
+    <div class="row">
+        <!-- 左侧：当前成员 -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>{% trans "当前成员" %} ({{ members.count }})
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" id="listViewBtn">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary active" id="cardViewBtn">
+                            <i class="fas fa-th"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 卡片视图 -->
+                    <div id="cardView" class="row">
+                        {% for membership in members %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card member-card h-100">
+                                <div class="card-body text-center">
+                                    <img src="{{ membership.user.get_avatar_url }}" 
+                                         alt="{{ membership.user.get_display_name }}"
+                                         class="member-avatar rounded-circle mb-3">
+                                    
+                                    <h6 class="card-title mb-2">{{ membership.user.get_display_name }}</h6>
+                                    
+                                    <div class="mb-2">
+                                        <span class="badge bg-{{ membership.role|yesno:'primary,secondary' }} role-badge">
+                                            {{ membership.get_role_display }}
+                                        </span>
+                                        <span class="badge bg-{{ membership.status|yesno:'success,secondary' }} role-badge ms-1">
+                                            {{ membership.get_status_display }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="text-muted small mb-3">
+                                        {% if membership.joined_at %}
+                                        {% trans "加入于" %} {{ membership.joined_at|date:"Y-m-d" }}
+                                        {% else %}
+                                        {% trans "创建时间" %} {{ membership.created_at|date:"Y-m-d" }}
+                                        {% endif %}
+                                        
+                                        {% if membership.invited_by %}
+                                        <br>{% trans "邀请人：" %}{{ membership.invited_by.get_display_name }}
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- 操作按钮 -->
+                                    {% if membership.user != request.user and user_membership.role == 'owner' %}
+                                    <div class="btn-group btn-group-sm w-100">
+                                        {% if membership.role != 'owner' %}
+                                        <button class="btn btn-outline-primary" 
+                                                onclick="editMember({{ membership.pk }}, '{{ membership.get_role_display }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" 
+                                                onclick="removeMember({{ membership.pk }}, '{{ membership.user.get_display_name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% else %}
+                                        <small class="text-muted">{% trans "团队所有者" %}</small>
+                                        {% endif %}
+                                    </div>
+                                    {% elif membership.user == request.user %}
+                                    <small class="text-primary">{% trans "这是你" %}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-users fa-3x mb-3"></i>
+                                <p>{% trans "暂无成员" %}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- 列表视图 -->
+                    <div id="listView" class="d-none">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "成员" %}</th>
+                                        <th>{% trans "角色" %}</th>
+                                        <th>{% trans "状态" %}</th>
+                                        <th>{% trans "加入时间" %}</th>
+                                        <th>{% trans "邀请人" %}</th>
+                                        <th>{% trans "操作" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for membership in members %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ membership.user.get_avatar_url }}" 
+                                                     alt="{{ membership.user.get_display_name }}"
+                                                     class="member-avatar rounded-circle me-3" style="width: 40px; height: 40px;">
+                                                <div>
+                                                    <div class="fw-bold">{{ membership.user.get_display_name }}</div>
+                                                    <small class="text-muted">{{ membership.user.email }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ membership.role|yesno:'primary,secondary' }}">
+                                                {{ membership.get_role_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ membership.status|yesno:'success,secondary' }}">
+                                                {{ membership.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if membership.joined_at %}
+                                            {{ membership.joined_at|date:"Y-m-d" }}
+                                            {% else %}
+                                            {{ membership.created_at|date:"Y-m-d" }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if membership.invited_by %}
+                                            {{ membership.invited_by.get_display_name }}
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if membership.user != request.user and user_membership.role == 'owner' and membership.role != 'owner' %}
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" 
+                                                        onclick="editMember({{ membership.pk }}, '{{ membership.get_role_display }}')">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" 
+                                                        onclick="removeMember({{ membership.pk }}, '{{ membership.user.get_display_name }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                            {% elif membership.user == request.user %}
+                                            <small class="text-primary">{% trans "你" %}</small>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧：待处理邀请和统计 -->
+        <div class="col-lg-4">
+            <!-- 成员统计 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>{% trans "成员统计" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 text-primary mb-0">{{ members|length }}</div>
+                            <small class="text-muted">{% trans "总成员" %}</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-success mb-0">{{ pending_invitations|length }}</div>
+                            <small class="text-muted">{% trans "待处理" %}</small>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <!-- 角色分布 -->
+                    {% for role, count in role_stats.items %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary">{{ role }}</span>
+                        <span class="fw-bold">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- 待处理邀请 -->
+            {% if pending_invitations %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-envelope me-2"></i>{% trans "待处理邀请" %} ({{ pending_invitations|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for invitation in pending_invitations %}
+                    <div class="invitation-card p-3 mb-3 rounded {% if forloop.last %}mb-0{% endif %}">
+                        <div class="d-flex align-items-start">
+                            <img src="{{ invitation.invitee.get_avatar_url }}" 
+                                 alt="{{ invitation.invitee.get_display_name }}"
+                                 class="member-avatar rounded-circle me-3" style="width: 40px; height: 40px;">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">{{ invitation.invitee.get_display_name }}</div>
+                                <div class="small text-muted mb-2">
+                                    <span class="badge bg-info">{{ invitation.get_role_display }}</span>
+                                    <br>
+                                    {% trans "邀请人：" %}{{ invitation.inviter.get_display_name }}
+                                    <br>
+                                    {% trans "发送时间：" %}{{ invitation.created_at|date:"m-d H:i" }}
+                                </div>
+                                
+                                {% if invitation.message %}
+                                <div class="small mb-2">
+                                    <i class="fas fa-quote-left me-1"></i>{{ invitation.message }}
+                                </div>
+                                {% endif %}
+                                
+                                <div class="small text-muted">
+                                    {% if invitation.is_expired %}
+                                    <span class="text-danger">{% trans "已过期" %}</span>
+                                    {% else %}
+                                    {% trans "过期时间：" %}{{ invitation.expires_at|date:"m-d H:i" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <button class="dropdown-item" 
+                                                onclick="resendInvitation({{ invitation.pk }})">
+                                            <i class="fas fa-redo me-2"></i>{% trans "重新发送" %}
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" 
+                                                onclick="cancelInvitation({{ invitation.pk }})">
+                                            <i class="fas fa-times me-2"></i>{% trans "取消邀请" %}
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 邀请成员模态框 -->
+<div class="modal fade" id="inviteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header invite-section">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>{% trans "邀请新成员" %}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'teams:invite' team.pk %}" id="inviteForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    
+                    <!-- 用户标识符 -->
+                    <div class="mb-3">
+                        <label for="{{ invitation_form.user_identifier.id_for_label }}" class="form-label">
+                            {{ invitation_form.user_identifier.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ invitation_form.user_identifier }}
+                        <div class="form-text">
+                            {% trans "输入要邀请用户的用户名或邮箱地址" %}
+                        </div>
+                    </div>
+                    
+                    <!-- 角色选择 -->
+                    <div class="mb-3">
+                        <label for="{{ invitation_form.role.id_for_label }}" class="form-label">
+                            {{ invitation_form.role.label }}
+                        </label>
+                        {{ invitation_form.role }}
+                        <div class="form-text">
+                            {% trans "选择新成员的初始角色" %}
+                        </div>
+                    </div>
+                    
+                    <!-- 邀请消息 -->
+                    <div class="mb-3">
+                        <label for="{{ invitation_form.message.id_for_label }}" class="form-label">
+                            {{ invitation_form.message.label }}
+                        </label>
+                        {{ invitation_form.message }}
+                        <div class="form-text">
+                            {% trans "可选的个人化邀请消息" %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        {% trans "取消" %}
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>{% trans "发送邀请" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑成员模态框 -->
+<div class="modal fade" id="editMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2"></i>{% trans "编辑成员" %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMemberForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editMemberId" name="member_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "角色" %}</label>
+                        <select class="form-select" id="editMemberRole" name="role">
+                            <option value="member">{% trans "成员" %}</option>
+                            <option value="admin">{% trans "管理员" %}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "状态" %}</label>
+                        <select class="form-select" id="editMemberStatus" name="status">
+                            <option value="active">{% trans "活跃" %}</option>
+                            <option value="inactive">{% trans "非活跃" %}</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {% trans "取消" %}
+                </button>
+                <button type="button" class="btn btn-primary" onclick="updateMember()">
+                    <i class="fas fa-save me-2"></i>{% trans "保存" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 视图切换
+document.getElementById('cardViewBtn').addEventListener('click', function() {
+    document.getElementById('cardView').classList.remove('d-none');
+    document.getElementById('listView').classList.add('d-none');
+    this.classList.add('active');
+    document.getElementById('listViewBtn').classList.remove('active');
+});
+
+document.getElementById('listViewBtn').addEventListener('click', function() {
+    document.getElementById('listView').classList.remove('d-none');
+    document.getElementById('cardView').classList.add('d-none');
+    this.classList.add('active');
+    document.getElementById('cardViewBtn').classList.remove('active');
+});
+
+// 编辑成员
+function editMember(memberId, currentRole) {
+    document.getElementById('editMemberId').value = memberId;
+    document.getElementById('editMemberRole').value = currentRole.toLowerCase();
+    
+    const modal = new bootstrap.Modal(document.getElementById('editMemberModal'));
+    modal.show();
+}
+
+// 更新成员
+function updateMember() {
+    // 这里实现更新成员的AJAX请求
+    alert('{% trans "成员更新功能待实现" %}');
+}
+
+// 移除成员
+function removeMember(memberId, memberName) {
+    if (confirm('{% trans "确定要移除成员" %} ' + memberName + ' {% trans "吗？" %}')) {
+        // 这里实现移除成员的AJAX请求
+        alert('{% trans "成员移除功能待实现" %}');
+    }
+}
+
+// 重新发送邀请
+function resendInvitation(invitationId) {
+    // 这里实现重发邀请的AJAX请求
+    alert('{% trans "重发邀请功能待实现" %}');
+}
+
+// 取消邀请
+function cancelInvitation(invitationId) {
+    if (confirm('{% trans "确定要取消这个邀请吗？" %}')) {
+        // 这里实现取消邀请的AJAX请求
+        alert('{% trans "取消邀请功能待实现" %}');
+    }
+}
+
+// 邀请表单提交
+document.getElementById('inviteForm').addEventListener('submit', function(e) {
+    const userInput = document.getElementById('{{ invitation_form.user_identifier.id_for_label }}');
+    if (!userInput.value.trim()) {
+        e.preventDefault();
+        alert('{% trans "请输入用户名或邮箱" %}');
+        return false;
+    }
+});
+</script>
+{% endblock %}
