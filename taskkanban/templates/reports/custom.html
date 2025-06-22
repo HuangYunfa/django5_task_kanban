@@ -1,0 +1,790 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "自定义报表" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.report-header {
+    background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.config-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+    min-height: 400px;
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.config-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #495057;
+    border-bottom: 2px solid #fd7e14;
+    padding-bottom: 0.5rem;
+}
+
+.metric-selector {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.metric-selector:hover {
+    background: #e9ecef;
+    border-color: #fd7e14;
+}
+
+.metric-selector.selected {
+    background: #fff3cd;
+    border-color: #fd7e14;
+    border-width: 2px;
+}
+
+.metric-selector input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.chart-type-option {
+    text-align: center;
+    padding: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.chart-type-option:hover {
+    border-color: #fd7e14;
+    background: #fff3cd;
+}
+
+.chart-type-option.selected {
+    border-color: #fd7e14;
+    background: #fff3cd;
+}
+
+.chart-type-icon {
+    font-size: 2rem;
+    color: #fd7e14;
+    margin-bottom: 0.5rem;
+}
+
+.preview-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    flex-direction: column;
+    color: #6c757d;
+}
+
+.preview-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    margin: 0 1rem;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #dee2e6;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.step.active .step-number {
+    background: #fd7e14;
+    color: white;
+}
+
+.step.completed .step-number {
+    background: #28a745;
+    color: white;
+}
+
+.step-label {
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.step.active .step-label {
+    color: #fd7e14;
+}
+
+.step.completed .step-label {
+    color: #28a745;
+}
+
+.data-table {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.export-options {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.export-option {
+    text-align: center;
+    padding: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 120px;
+}
+
+.export-option:hover {
+    border-color: #fd7e14;
+    background: #fff3cd;
+}
+
+.export-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.export-pdf { color: #dc3545; }
+.export-excel { color: #28a745; }
+.export-csv { color: #17a2b8; }
+.export-image { color: #6f42c1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-header text-center">
+    <h1><i class="fas fa-cogs me-2"></i>{% trans "自定义报表" %}</h1>
+    <p class="mb-0">{% trans "灵活配置和生成个性化报表" %}</p>
+</div>
+
+<!-- 步骤指示器 -->
+<div class="step-indicator">
+    <div class="step active" id="step1">
+        <div class="step-number">1</div>
+        <div class="step-label">{% trans "选择数据" %}</div>
+    </div>
+    <div class="step" id="step2">
+        <div class="step-number">2</div>
+        <div class="step-label">{% trans "配置图表" %}</div>
+    </div>
+    <div class="step" id="step3">
+        <div class="step-number">3</div>
+        <div class="step-label">{% trans "预览结果" %}</div>
+    </div>
+    <div class="step" id="step4">
+        <div class="step-number">4</div>
+        <div class="step-label">{% trans "导出保存" %}</div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 配置面板 -->
+    <div class="col-lg-4">
+        <!-- 步骤1: 数据选择 -->
+        <div class="config-section" id="data-selection">
+            <div class="config-title">
+                <i class="fas fa-database me-2"></i>{% trans "数据选择" %}
+            </div>
+            
+            <!-- 筛选条件 -->
+            <form method="get" id="filter-form">
+                <div class="mb-3">
+                    {{ filter_form.start_date.label_tag }}
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="mb-3">
+                    {{ filter_form.end_date.label_tag }}
+                    {{ filter_form.end_date }}
+                </div>
+                <div class="mb-3">
+                    {{ filter_form.team.label_tag }}
+                    {{ filter_form.team }}
+                </div>
+                <div class="mb-3">
+                    {{ filter_form.board.label_tag }}
+                    {{ filter_form.board }}
+                </div>
+                <div class="mb-3">
+                    {{ filter_form.user.label_tag }}
+                    {{ filter_form.user }}
+                </div>
+            </form>
+            
+            <!-- 指标选择 -->
+            <div class="mb-3">
+                <label class="form-label">{% trans "选择指标" %}</label>
+                <div class="metric-selector" data-metric="task_completion">
+                    <input type="checkbox" id="metric_task_completion" name="metrics" value="task_completion">
+                    <label for="metric_task_completion">
+                        <i class="fas fa-tasks me-2"></i>{% trans "任务完成情况" %}
+                    </label>
+                </div>
+                <div class="metric-selector" data-metric="user_workload">
+                    <input type="checkbox" id="metric_user_workload" name="metrics" value="user_workload">
+                    <label for="metric_user_workload">
+                        <i class="fas fa-user-clock me-2"></i>{% trans "用户工作负载" %}
+                    </label>
+                </div>
+                <div class="metric-selector" data-metric="team_performance">
+                    <input type="checkbox" id="metric_team_performance" name="metrics" value="team_performance">
+                    <label for="metric_team_performance">
+                        <i class="fas fa-users me-2"></i>{% trans "团队绩效" %}
+                    </label>
+                </div>
+                <div class="metric-selector" data-metric="project_progress">
+                    <input type="checkbox" id="metric_project_progress" name="metrics" value="project_progress">
+                    <label for="metric_project_progress">
+                        <i class="fas fa-project-diagram me-2"></i>{% trans "项目进度" %}
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 步骤2: 图表配置 -->
+        <div class="config-section" id="chart-configuration" style="display: none;">
+            <div class="config-title">
+                <i class="fas fa-chart-bar me-2"></i>{% trans "图表配置" %}
+            </div>
+            
+            <!-- 图表类型选择 -->
+            <div class="mb-3">
+                <label class="form-label">{% trans "图表类型" %}</label>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="chart-type-option" data-type="bar">
+                            <div class="chart-type-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div>{% trans "柱状图" %}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="chart-type-option" data-type="line">
+                            <div class="chart-type-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>{% trans "折线图" %}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="chart-type-option" data-type="pie">
+                            <div class="chart-type-icon">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div>{% trans "饼图" %}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="chart-type-option" data-type="doughnut">
+                            <div class="chart-type-icon">
+                                <i class="fas fa-dot-circle"></i>
+                            </div>
+                            <div>{% trans "环形图" %}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 图表设置 -->
+            <div class="mb-3">
+                {{ chart_config_form.as_p }}
+            </div>
+        </div>
+        
+        <!-- 步骤4: 导出选项 -->
+        <div class="config-section" id="export-options" style="display: none;">
+            <div class="config-title">
+                <i class="fas fa-download me-2"></i>{% trans "导出选项" %}
+            </div>
+            
+            <div class="export-options">
+                <div class="export-option" data-format="pdf">
+                    <div class="export-icon export-pdf">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <div>PDF</div>
+                </div>
+                <div class="export-option" data-format="excel">
+                    <div class="export-icon export-excel">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div>Excel</div>
+                </div>
+                <div class="export-option" data-format="csv">
+                    <div class="export-icon export-csv">
+                        <i class="fas fa-file-csv"></i>
+                    </div>
+                    <div>CSV</div>
+                </div>
+                <div class="export-option" data-format="image">
+                    <div class="export-icon export-image">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div>{% trans "图片" %}</div>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="include_charts" checked>
+                    <label class="form-check-label" for="include_charts">
+                        {% trans "包含图表" %}
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="include_data" checked>
+                    <label class="form-check-label" for="include_data">
+                        {% trans "包含原始数据" %}
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="config-section">
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-warning" id="generate-report">
+                    <i class="fas fa-play me-2"></i>{% trans "生成报表" %}
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="reset-config">
+                    <i class="fas fa-undo me-2"></i>{% trans "重置配置" %}
+                </button>
+                <button type="button" class="btn btn-outline-success" id="save-template">
+                    <i class="fas fa-save me-2"></i>{% trans "保存模板" %}
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 预览区域 -->
+    <div class="col-lg-8">
+        <!-- 步骤3: 预览结果 -->
+        <div class="chart-container" id="preview-container">
+            <div class="chart-title">
+                <i class="fas fa-eye me-2"></i>{% trans "报表预览" %}
+            </div>
+            
+            <div class="preview-placeholder" id="chart-preview">
+                <i class="fas fa-chart-bar"></i>
+                <h5>{% trans "选择数据和图表类型开始生成报表" %}</h5>
+                <p class="text-muted">{% trans "配置完成后点击"生成报表"按钮查看预览" %}</p>
+            </div>
+            
+            <!-- 动态生成的图表容器 -->
+            <canvas id="customChart" style="display: none;"></canvas>
+        </div>
+        
+        <!-- 数据表格 -->
+        <div class="chart-container" id="data-container" style="display: none;">
+            <div class="chart-title">
+                <i class="fas fa-table me-2"></i>{% trans "数据详情" %}
+            </div>
+            
+            <div class="data-table">
+                <table class="table table-striped" id="data-table">
+                    <thead id="table-header"></thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 保存模板模态框 -->
+<div class="modal fade" id="saveTemplateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "保存报表模板" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="save-template-form">
+                    <div class="mb-3">
+                        <label for="template-name" class="form-label">{% trans "模板名称" %}</label>
+                        <input type="text" class="form-control" id="template-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="template-description" class="form-label">{% trans "模板描述" %}</label>
+                        <textarea class="form-control" id="template-description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "取消" %}</button>
+                <button type="button" class="btn btn-success" id="confirm-save-template">{% trans "保存" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentStep = 1;
+    let selectedMetrics = [];
+    let selectedChartType = null;
+    let currentChart = null;
+    let reportData = null;
+    
+    // 步骤控制
+    function updateStep(step) {
+        // 更新步骤指示器
+        document.querySelectorAll('.step').forEach((el, index) => {
+            el.classList.remove('active', 'completed');
+            if (index + 1 < step) {
+                el.classList.add('completed');
+            } else if (index + 1 === step) {
+                el.classList.add('active');
+            }
+        });
+        
+        // 显示/隐藏配置面板
+        document.getElementById('data-selection').style.display = step === 1 ? 'block' : 'none';
+        document.getElementById('chart-configuration').style.display = step === 2 ? 'block' : 'none';
+        document.getElementById('export-options').style.display = step === 4 ? 'block' : 'none';
+        
+        currentStep = step;
+    }
+    
+    // 指标选择
+    document.querySelectorAll('.metric-selector').forEach(selector => {
+        selector.addEventListener('click', function() {
+            const checkbox = this.querySelector('input[type="checkbox"]');
+            const metric = this.dataset.metric;
+            
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                this.classList.add('selected');
+                if (!selectedMetrics.includes(metric)) {
+                    selectedMetrics.push(metric);
+                }
+            } else {
+                this.classList.remove('selected');
+                selectedMetrics = selectedMetrics.filter(m => m !== metric);
+            }
+            
+            // 如果选择了指标，进入下一步
+            if (selectedMetrics.length > 0) {
+                updateStep(2);
+            }
+        });
+    });
+    
+    // 图表类型选择
+    document.querySelectorAll('.chart-type-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.chart-type-option').forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedChartType = this.dataset.type;
+            
+            // 进入预览步骤
+            updateStep(3);
+        });
+    });
+    
+    // 生成报表
+    document.getElementById('generate-report').addEventListener('click', function() {
+        if (selectedMetrics.length === 0) {
+            alert('请先选择指标');
+            return;
+        }
+        
+        if (!selectedChartType) {
+            alert('请先选择图表类型');
+            return;
+        }
+        
+        generateReport();
+    });
+    
+    // 生成报表函数
+    function generateReport() {
+        const formData = new FormData(document.getElementById('filter-form'));
+        formData.append('metrics', selectedMetrics.join(','));
+        formData.append('chart_type', selectedChartType);
+        
+        // 显示加载状态
+        document.getElementById('chart-preview').innerHTML = `
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">正在生成报表...</p>
+        `;
+        
+        // 模拟API调用
+        setTimeout(() => {
+            // 生成模拟数据
+            reportData = generateMockData();
+            
+            // 显示图表
+            displayChart();
+            
+            // 显示数据表格
+            displayDataTable();
+            
+            // 进入导出步骤
+            updateStep(4);
+        }, 1000);
+    }
+    
+    // 生成模拟数据
+    function generateMockData() {
+        const mockData = {
+            task_completion: {
+                labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                data: [12, 19, 3, 5, 2, 3, 7]
+            },
+            user_workload: {
+                labels: ['张三', '李四', '王五', '赵六', '钱七'],
+                data: [25, 35, 20, 15, 30]
+            },
+            team_performance: {
+                labels: ['开发团队', '测试团队', '设计团队', '产品团队'],
+                data: [85, 92, 78, 88]
+            },
+            project_progress: {
+                labels: ['项目A', '项目B', '项目C', '项目D'],
+                data: [75, 60, 90, 45]
+            }
+        };
+        
+        // 根据选择的指标返回相应数据
+        const result = {};
+        selectedMetrics.forEach(metric => {
+            result[metric] = mockData[metric];
+        });
+        
+        return result;
+    }
+    
+    // 显示图表
+    function displayChart() {
+        const canvas = document.getElementById('customChart');
+        const ctx = canvas.getContext('2d');
+        
+        // 销毁之前的图表
+        if (currentChart) {
+            currentChart.destroy();
+        }
+        
+        // 隐藏占位符，显示图表
+        document.getElementById('chart-preview').style.display = 'none';
+        canvas.style.display = 'block';
+        
+        // 准备图表数据
+        const firstMetric = selectedMetrics[0];
+        const chartData = reportData[firstMetric];
+        
+        const config = {
+            type: selectedChartType,
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: '数据',
+                    data: chartData.data,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 205, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: selectedChartType === 'pie' || selectedChartType === 'doughnut'
+                    }
+                },
+                scales: selectedChartType === 'pie' || selectedChartType === 'doughnut' ? {} : {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        };
+        
+        currentChart = new Chart(ctx, config);
+    }
+    
+    // 显示数据表格
+    function displayDataTable() {
+        const tableContainer = document.getElementById('data-container');
+        const tableHeader = document.getElementById('table-header');
+        const tableBody = document.getElementById('table-body');
+        
+        // 清空表格
+        tableHeader.innerHTML = '';
+        tableBody.innerHTML = '';
+        
+        // 生成表头
+        const headerRow = document.createElement('tr');
+        headerRow.innerHTML = '<th>指标</th><th>标签</th><th>数值</th>';
+        tableHeader.appendChild(headerRow);
+        
+        // 生成表格数据
+        selectedMetrics.forEach(metric => {
+            const data = reportData[metric];
+            data.labels.forEach((label, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${metric}</td>
+                    <td>${label}</td>
+                    <td>${data.data[index]}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        });
+        
+        tableContainer.style.display = 'block';
+    }
+    
+    // 重置配置
+    document.getElementById('reset-config').addEventListener('click', function() {
+        selectedMetrics = [];
+        selectedChartType = null;
+        
+        // 清空选择
+        document.querySelectorAll('.metric-selector').forEach(sel => sel.classList.remove('selected'));
+        document.querySelectorAll('.chart-type-option').forEach(opt => opt.classList.remove('selected'));
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        
+        // 隐藏图表和数据
+        document.getElementById('customChart').style.display = 'none';
+        document.getElementById('data-container').style.display = 'none';
+        document.getElementById('chart-preview').style.display = 'flex';
+        document.getElementById('chart-preview').innerHTML = `
+            <i class="fas fa-chart-bar"></i>
+            <h5>选择数据和图表类型开始生成报表</h5>
+            <p class="text-muted">配置完成后点击"生成报表"按钮查看预览</p>
+        `;
+        
+        // 销毁图表
+        if (currentChart) {
+            currentChart.destroy();
+            currentChart = null;
+        }
+        
+        // 回到第一步
+        updateStep(1);
+    });
+    
+    // 保存模板
+    document.getElementById('save-template').addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('saveTemplateModal'));
+        modal.show();
+    });
+    
+    document.getElementById('confirm-save-template').addEventListener('click', function() {
+        const name = document.getElementById('template-name').value;
+        const description = document.getElementById('template-description').value;
+        
+        if (!name) {
+            alert('请输入模板名称');
+            return;
+        }
+        
+        // 模拟保存
+        console.log('保存模板:', {
+            name,
+            description,
+            metrics: selectedMetrics,
+            chartType: selectedChartType
+        });
+        
+        alert('模板保存成功！');
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('saveTemplateModal'));
+        modal.hide();
+    });
+    
+    // 导出选项
+    document.querySelectorAll('.export-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const format = this.dataset.format;
+            const includeCharts = document.getElementById('include_charts').checked;
+            const includeData = document.getElementById('include_data').checked;
+            
+            console.log('导出报表:', {
+                format,
+                includeCharts,
+                includeData,
+                metrics: selectedMetrics,
+                chartType: selectedChartType
+            });
+            
+            alert(`正在导出${format.toUpperCase()}格式的报表...`);
+        });
+    });
+});
+</script>
+{% endblock %}

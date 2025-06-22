@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "报表列表" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.report-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #495057;
+}
+
+.report-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.report-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.report-meta {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.report-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.search-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.report-type-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.type-dashboard { background: #e3f2fd; color: #1976d2; }
+.type-task { background: #e8f5e8; color: #388e3c; }
+.type-team { background: #fff3e0; color: #f57c00; }
+.type-project { background: #f3e5f5; color: #7b1fa2; }
+.type-custom { background: #fce4ec; color: #c2185b; }
+
+.stats-summary {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #495057;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.quick-actions {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.action-button {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #495057;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.action-button:hover {
+    border-color: #495057;
+    background: #f8f9fa;
+    color: #495057;
+    text-decoration: none;
+}
+
+.action-icon {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    width: 40px;
+    text-align: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1><i class="fas fa-list me-2"></i>{% trans "报表列表" %}</h1>
+            <p class="mb-0">{% trans "管理和查看所有报表" %}</p>
+        </div>
+        <div>
+            <a href="{% url 'reports:create' %}" class="btn btn-light btn-lg">
+                <i class="fas fa-plus me-2"></i>{% trans "创建报表" %}
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 统计概览 -->
+<div class="stats-summary">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-number">{{ reports.count }}</div>
+                <div class="stat-label">{% trans "总报表数" %}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-number">12</div>
+                <div class="stat-label">{% trans "本月创建" %}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-number">5</div>
+                <div class="stat-label">{% trans "常用报表" %}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-item">
+                <div class="stat-number">3</div>
+                <div class="stat-label">{% trans "共享报表" %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 左侧：搜索和筛选 -->
+    <div class="col-lg-3">
+        <!-- 快速操作 -->
+        <div class="quick-actions">
+            <h6 class="mb-3">{% trans "快速操作" %}</h6>
+            <a href="{% url 'reports:index' %}" class="action-button">
+                <div class="action-icon">
+                    <i class="fas fa-tachometer-alt text-primary"></i>
+                </div>
+                <div>
+                    <div class="fw-bold">{% trans "仪表板" %}</div>
+                    <small class="text-muted">{% trans "查看总体概览" %}</small>
+                </div>
+            </a>
+            <a href="{% url 'reports:tasks' %}" class="action-button">
+                <div class="action-icon">
+                    <i class="fas fa-tasks text-success"></i>
+                </div>
+                <div>
+                    <div class="fw-bold">{% trans "任务报表" %}</div>
+                    <small class="text-muted">{% trans "任务统计分析" %}</small>
+                </div>
+            </a>
+            <a href="{% url 'reports:team_performance' %}" class="action-button">
+                <div class="action-icon">
+                    <i class="fas fa-users text-warning"></i>
+                </div>
+                <div>
+                    <div class="fw-bold">{% trans "团队绩效" %}</div>
+                    <small class="text-muted">{% trans "团队表现分析" %}</small>
+                </div>
+            </a>
+            <a href="{% url 'reports:custom' %}" class="action-button">
+                <div class="action-icon">
+                    <i class="fas fa-cogs text-info"></i>
+                </div>
+                <div>
+                    <div class="fw-bold">{% trans "自定义报表" %}</div>
+                    <small class="text-muted">{% trans "创建定制报表" %}</small>
+                </div>
+            </a>
+        </div>
+        
+        <!-- 搜索 -->
+        <div class="search-section">
+            <h6 class="mb-3">{% trans "搜索报表" %}</h6>
+            <form method="get">
+                <div class="mb-3">
+                    <input type="text" class="form-control" name="search" 
+                           placeholder="{% trans '搜索报表名称或描述...' %}" 
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="mb-3">
+                    <select class="form-select" name="type">
+                        <option value="">{% trans "所有类型" %}</option>
+                        <option value="dashboard">{% trans "仪表板" %}</option>
+                        <option value="task">{% trans "任务报表" %}</option>
+                        <option value="team">{% trans "团队报表" %}</option>
+                        <option value="project">{% trans "项目报表" %}</option>
+                        <option value="custom">{% trans "自定义报表" %}</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <select class="form-select" name="date_range">
+                        <option value="">{% trans "所有时间" %}</option>
+                        <option value="today">{% trans "今天" %}</option>
+                        <option value="week">{% trans "本周" %}</option>
+                        <option value="month">{% trans "本月" %}</option>
+                        <option value="quarter">{% trans "本季度" %}</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>{% trans "搜索" %}
+                </button>
+                {% if request.GET.search or request.GET.type or request.GET.date_range %}
+                <a href="{% url 'reports:list' %}" class="btn btn-outline-secondary w-100 mt-2">
+                    <i class="fas fa-times me-2"></i>{% trans "清除筛选" %}
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    
+    <!-- 右侧：报表列表 -->
+    <div class="col-lg-9">
+        {% if reports %}
+            <!-- 排序和视图选项 -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="text-muted">{% trans "共" %} {{ reports.count }} {% trans "个报表" %}</span>
+                </div>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm active">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 报表卡片 -->
+            <div class="row">
+                {% for report in reports %}
+                <div class="col-lg-6 mb-3">
+                    <div class="report-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="report-title">
+                                <a href="{% url 'reports:detail' report.pk %}" class="text-decoration-none">
+                                    {{ report.name }}
+                                </a>
+                            </div>
+                            <span class="report-type-badge type-{{ report.report_type }}">
+                                {{ report.get_report_type_display }}
+                            </span>
+                        </div>
+                        
+                        <div class="report-meta">
+                            <i class="fas fa-calendar me-2"></i>{{ report.created_at|date:"Y-m-d H:i" }}
+                            <i class="fas fa-user ms-3 me-2"></i>{{ report.created_by.get_full_name|default:report.created_by.username }}
+                        </div>
+                        
+                        {% if report.description %}
+                        <p class="text-muted mb-3">{{ report.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        
+                        <div class="report-actions">
+                            <a href="{% url 'reports:detail' report.pk %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>{% trans "查看" %}
+                            </a>
+                            <button class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-download me-1"></i>{% trans "导出" %}
+                            </button>
+                            <button class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-copy me-1"></i>{% trans "复制" %}
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-edit me-1"></i>{% trans "编辑" %}
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-trash me-1"></i>{% trans "删除" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- 分页 -->
+            {% if is_paginated %}
+            <nav aria-label="{% trans '分页导航' %}">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                {% trans "首页" %}
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                {% trans "上一页" %}
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            {% trans "第" %} {{ page_obj.number }} {% trans "页，共" %} {{ page_obj.paginator.num_pages }} {% trans "页" %}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                {% trans "下一页" %}
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                {% trans "末页" %}
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <!-- 空状态 -->
+            <div class="empty-state">
+                <i class="fas fa-chart-bar"></i>
+                <h4>{% trans "暂无报表" %}</h4>
+                {% if request.GET.search or request.GET.type or request.GET.date_range %}
+                    <p>{% trans "没有找到符合条件的报表，请调整搜索条件" %}</p>
+                    <a href="{% url 'reports:list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>{% trans "清除筛选" %}
+                    </a>
+                {% else %}
+                    <p>{% trans "您还没有创建任何报表，点击下面的按钮开始创建" %}</p>
+                    <a href="{% url 'reports:create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>{% trans "创建第一个报表" %}
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 确认删除
+    document.querySelectorAll('.btn-outline-danger').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm('确定要删除这个报表吗？此操作不可撤销。')) {
+                // 这里实现删除逻辑
+                console.log('删除报表');
+            }
+        });
+    });
+    
+    // 复制报表
+    document.querySelectorAll('.btn-outline-info').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // 这里实现复制逻辑
+            console.log('复制报表');
+            alert('报表复制功能开发中...');
+        });
+    });
+    
+    // 导出报表
+    document.querySelectorAll('.btn-outline-success').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // 这里实现导出逻辑
+            console.log('导出报表');
+            alert('报表导出功能开发中...');
+        });
+    });
+});
+</script>
+{% endblock %}

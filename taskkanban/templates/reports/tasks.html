@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "任务统计报表" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.report-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;    
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.priority-high { color: #dc3545; }
+.priority-medium { color: #ffc107; }
+.priority-low { color: #28a745; }
+
+.task-summary {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.summary-item {
+    padding: 1rem;
+    border-left: 4px solid #007bff;
+    background: #f8f9fa;
+    margin-bottom: 1rem;
+    border-radius: 0 5px 5px 0;
+}
+
+.summary-title {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.summary-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #007bff;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-header text-center">
+    <h1><i class="fas fa-tasks me-2"></i>{% trans "任务统计报表" %}</h1>
+    <p class="mb-0">{% trans "深入分析任务执行情况和完成趋势" %}</p>
+</div>
+
+<!-- 筛选器 -->
+<div class="filter-section">
+    <form method="get" class="row align-items-end">
+        <div class="col-md-3">
+            {{ filter_form.start_date.label_tag }}
+            {{ filter_form.start_date }}
+        </div>
+        <div class="col-md-3">
+            {{ filter_form.end_date.label_tag }}
+            {{ filter_form.end_date }}
+        </div>
+        <div class="col-md-2">
+            {{ filter_form.team.label_tag }}
+            {{ filter_form.team }}
+        </div>
+        <div class="col-md-2">
+            {{ filter_form.board.label_tag }}
+            {{ filter_form.board }}
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-success w-100">
+                <i class="fas fa-filter me-1"></i>{% trans "筛选" %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 任务概览 -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="task-summary">
+            <div class="chart-title">
+                <i class="fas fa-info-circle me-2"></i>{% trans "任务概览" %}
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="summary-item">
+                        <div class="summary-title">{% trans "总任务数" %}</div>
+                        <div class="summary-value">{{ task_stats.total_tasks|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="summary-item">
+                        <div class="summary-title">{% trans "完成率" %}</div>
+                        <div class="summary-value">{{ task_stats.completion_rate|floatformat:1|default:0 }}%</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="summary-item">
+                        <div class="summary-title">{% trans "平均完成时间" %}</div>
+                        <div class="summary-value">{{ task_stats.avg_completion_time|default:0 }} {% trans "天" %}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-chart-line me-2"></i>{% trans "完成趋势" %}
+            </div>
+            <canvas id="completionTrendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- 图表区域 -->
+<div class="row">
+    <!-- 任务优先级分布 -->
+    <div class="col-lg-6 mb-4">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-exclamation-triangle me-2"></i>{% trans "任务优先级分布" %}
+            </div>
+            <canvas id="priorityDistributionChart"></canvas>
+            
+            <!-- 优先级详情 -->
+            <div class="mt-3">
+                {% for priority in task_stats.priority_stats %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="priority-{{ priority.priority|lower }}">
+                        <i class="fas fa-circle me-1"></i>{{ priority.priority }}
+                    </span>
+                    <span class="badge bg-secondary">{{ priority.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 任务状态分布 -->
+    <div class="col-lg-6 mb-4">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-check-circle me-2"></i>{% trans "任务状态分布" %}
+            </div>
+            <canvas id="statusDistributionChart"></canvas>
+            
+            <!-- 状态详情 -->
+            <div class="mt-3">
+                {% for status in task_stats.status_stats %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>
+                        <i class="fas fa-circle me-1"></i>{{ status.status }}
+                    </span>
+                    <span class="badge bg-primary">{{ status.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 详细数据表格 -->
+<div class="row">
+    <div class="col-12">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-table me-2"></i>{% trans "详细统计数据" %}
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>{% trans "指标" %}</th>
+                            <th>{% trans "数值" %}</th>
+                            <th>{% trans "说明" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{% trans "总任务数" %}</td>
+                            <td><span class="badge bg-primary">{{ task_stats.total_tasks|default:0 }}</span></td>
+                            <td>{% trans "统计期间内的所有任务" %}</td>
+                        </tr>
+                        <tr>
+                            <td>{% trans "已完成任务" %}</td>
+                            <td><span class="badge bg-success">{{ task_stats.completed_tasks|default:0 }}</span></td>
+                            <td>{% trans "状态为已完成的任务" %}</td>
+                        </tr>
+                        <tr>
+                            <td>{% trans "进行中任务" %}</td>
+                            <td><span class="badge bg-warning">{{ task_stats.in_progress_tasks|default:0 }}</span></td>
+                            <td>{% trans "状态为进行中的任务" %}</td>
+                        </tr>
+                        <tr>
+                            <td>{% trans "待办任务" %}</td>
+                            <td><span class="badge bg-info">{{ task_stats.todo_tasks|default:0 }}</span></td>
+                            <td>{% trans "状态为待办的任务" %}</td>
+                        </tr>
+                        <tr>
+                            <td>{% trans "逾期任务" %}</td>
+                            <td><span class="badge bg-danger">{{ task_stats.overdue_tasks|default:0 }}</span></td>
+                            <td>{% trans "超过截止日期的任务" %}</td>
+                        </tr>
+                        <tr>
+                            <td>{% trans "完成率" %}</td>
+                            <td><span class="badge bg-success">{{ task_stats.completion_rate|floatformat:1|default:0 }}%</span></td>
+                            <td>{% trans "已完成任务占总任务的比例" %}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 导出和操作 -->
+<div class="row">
+    <div class="col-12">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-download me-2"></i>{% trans "导出报表" %}
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <form method="post" action="{% url 'reports:export' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="report_type" value="tasks">
+                        <div class="mb-3">
+                            {{ chart_config_form.as_p }}
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-file-pdf me-1"></i>{% trans "导出PDF" %}
+                        </button>
+                        <button type="submit" class="btn btn-outline-success">
+                            <i class="fas fa-file-excel me-1"></i>{% trans "导出Excel" %}
+                        </button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-end align-items-center h-100">
+                        <a href="{% url 'reports:index' %}" class="btn btn-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i>{% trans "返回仪表板" %}
+                        </a>
+                        <a href="{% url 'reports:custom' %}" class="btn btn-info">
+                            <i class="fas fa-cogs me-1"></i>{% trans "自定义报表" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 任务完成趋势图
+    const completionTrendData = {{ chart_data.completion_trend|safe }};
+    if (completionTrendData) {
+        const ctx1 = document.getElementById('completionTrendChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'line',
+            data: completionTrendData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
+    // 优先级分布图
+    const priorityDistributionData = {{ chart_data.priority_distribution|safe }};
+    if (priorityDistributionData) {
+        const ctx2 = document.getElementById('priorityDistributionChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'pie',
+            data: priorityDistributionData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+    
+    // 状态分布图
+    const statusDistributionData = {{ chart_data.status_distribution|safe }};
+    if (statusDistributionData) {
+        const ctx3 = document.getElementById('statusDistributionChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'doughnut',
+            data: statusDistributionData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

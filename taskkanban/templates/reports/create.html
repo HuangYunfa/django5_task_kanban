@@ -1,0 +1,910 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "创建报表" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.form-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #495057;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 0.5rem;
+}
+
+.form-step {
+    display: none;
+}
+
+.form-step.active {
+    display: block;
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    margin: 0 1rem;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #dee2e6;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.step.active .step-number {
+    background: #28a745;
+    color: white;
+}
+
+.step.completed .step-number {
+    background: #20c997;
+    color: white;
+}
+
+.step-label {
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.step.active .step-label {
+    color: #28a745;
+}
+
+.step.completed .step-label {
+    color: #20c997;
+}
+
+.report-template {
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.report-template:hover {
+    border-color: #28a745;
+    background: #f8fff9;
+    color: inherit;
+    text-decoration: none;
+}
+
+.report-template.selected {
+    border-color: #28a745;
+    background: #f8fff9;
+    border-width: 3px;
+}
+
+.template-icon {
+    font-size: 2.5rem;
+    color: #28a745;
+    margin-bottom: 1rem;
+}
+
+.template-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.template-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.preview-container {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.preview-container.has-content {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-style: solid;
+}
+
+.chart-type-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.chart-type-option {
+    text-align: center;
+    padding: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chart-type-option:hover {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.chart-type-option.selected {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.chart-type-icon {
+    font-size: 2rem;
+    color: #28a745;
+    margin-bottom: 0.5rem;
+}
+
+.config-group {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.config-group-title {
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    color: #495057;
+}
+
+.form-navigation {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: sticky;
+    bottom: 2rem;
+}
+
+.color-picker {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.data-source-option {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.data-source-option:hover {
+    background: #f8f9fa;
+    border-color: #28a745;
+}
+
+.data-source-option.selected {
+    background: #f8fff9;
+    border-color: #28a745;
+    border-width: 2px;
+}
+
+.data-source-icon {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    width: 40px;
+    text-align: center;
+}
+
+.data-source-info {
+    flex: 1;
+}
+
+.data-source-title {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.data-source-description {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header text-center">
+    <h1><i class="fas fa-plus me-2"></i>{% trans "创建报表" %}</h1>
+    <p class="mb-0">{% trans "通过简单的步骤创建专业的数据报表" %}</p>
+</div>
+
+<!-- 步骤指示器 -->
+<div class="step-indicator">
+    <div class="step active" id="step-indicator-1">
+        <div class="step-number">1</div>
+        <div class="step-label">{% trans "选择模板" %}</div>
+    </div>
+    <div class="step" id="step-indicator-2">
+        <div class="step-number">2</div>
+        <div class="step-label">{% trans "基本信息" %}</div>
+    </div>
+    <div class="step" id="step-indicator-3">
+        <div class="step-number">3</div>
+        <div class="step-label">{% trans "数据配置" %}</div>
+    </div>
+    <div class="step" id="step-indicator-4">
+        <div class="step-number">4</div>
+        <div class="step-label">{% trans "图表设置" %}</div>
+    </div>
+    <div class="step" id="step-indicator-5">
+        <div class="step-number">5</div>
+        <div class="step-label">{% trans "预览确认" %}</div>
+    </div>
+</div>
+
+<form method="post" id="create-report-form">
+    {% csrf_token %}
+    
+    <!-- 步骤1: 选择模板 -->
+    <div class="form-step active" id="step-1">
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-templates me-2"></i>{% trans "选择报表模板" %}
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="report-template" data-template="dashboard">
+                        <div class="text-center">
+                            <div class="template-icon">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <div class="template-title">{% trans "仪表板" %}</div>
+                            <div class="template-description">
+                                {% trans "创建综合性的数据仪表板，包含多个图表和指标" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="report-template" data-template="task">
+                        <div class="text-center">
+                            <div class="template-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="template-title">{% trans "任务报表" %}</div>
+                            <div class="template-description">
+                                {% trans "分析任务完成情况、优先级分布和进度趋势" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="report-template" data-template="team">
+                        <div class="text-center">
+                            <div class="template-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="template-title">{% trans "团队绩效" %}</div>
+                            <div class="template-description">
+                                {% trans "评估团队协作效率和成员工作负载" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="report-template" data-template="project">
+                        <div class="text-center">
+                            <div class="template-icon">
+                                <i class="fas fa-project-diagram"></i>
+                            </div>
+                            <div class="template-title">{% trans "项目进度" %}</div>
+                            <div class="template-description">
+                                {% trans "跟踪项目里程碑和整体进度" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <div class="report-template" data-template="custom">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center">
+                                <div class="template-icon">
+                                    <i class="fas fa-cogs"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="template-title">{% trans "自定义报表" %}</div>
+                                <div class="template-description">
+                                    {% trans "从头开始创建完全定制的报表，可以自由选择数据源、图表类型和布局" %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <input type="hidden" name="report_type" id="selected-template">
+        </div>
+    </div>
+    
+    <!-- 步骤2: 基本信息 -->
+    <div class="form-step" id="step-2">
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-info-circle me-2"></i>{% trans "基本信息" %}
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.name.label_tag }}
+                        {{ form.name }}
+                        <div class="form-text">{% trans "为您的报表起一个清晰明了的名称" %}</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "报表类型" %}</label>
+                        <input type="text" class="form-control" id="report-type-display" readonly>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                {{ form.description.label_tag }}
+                {{ form.description }}
+                <div class="form-text">{% trans "简要描述这个报表的用途和内容" %}</div>
+            </div>
+            
+            <div class="config-group">
+                <div class="config-group-title">{% trans "访问权限" %}</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="visibility" id="visibility-private" value="private" checked>
+                            <label class="form-check-label" for="visibility-private">
+                                <i class="fas fa-lock me-2"></i>{% trans "私有" %}
+                                <div class="form-text">{% trans "只有您可以查看和编辑" %}</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="visibility" id="visibility-team" value="team">
+                            <label class="form-check-label" for="visibility-team">
+                                <i class="fas fa-users me-2"></i>{% trans "团队共享" %}
+                                <div class="form-text">{% trans "团队成员可以查看" %}</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 步骤3: 数据配置 -->
+    <div class="form-step" id="step-3">
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-database me-2"></i>{% trans "数据配置" %}
+            </div>
+            
+            <!-- 数据源选择 -->
+            <div class="mb-4">
+                <label class="form-label">{% trans "选择数据源" %}</label>
+                <div class="data-source-option selected" data-source="default">
+                    <div class="data-source-icon">
+                        <i class="fas fa-database text-primary"></i>
+                    </div>
+                    <div class="data-source-info">
+                        <div class="data-source-title">{% trans "默认数据库" %}</div>
+                        <div class="data-source-description">{% trans "使用系统默认的任务和团队数据" %}</div>
+                    </div>
+                    <input type="radio" name="data_source" value="default" checked>
+                </div>
+                
+                <div class="data-source-option" data-source="custom">
+                    <div class="data-source-icon">
+                        <i class="fas fa-upload text-warning"></i>
+                    </div>
+                    <div class="data-source-info">
+                        <div class="data-source-title">{% trans "自定义数据" %}</div>
+                        <div class="data-source-description">{% trans "上传CSV文件或连接外部数据源" %}</div>
+                    </div>
+                    <input type="radio" name="data_source" value="custom">
+                </div>
+            </div>
+            
+            <!-- 时间范围 -->
+            <div class="config-group">
+                <div class="config-group-title">{% trans "数据时间范围" %}</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">{% trans "开始日期" %}</label>
+                        <input type="date" class="form-control" name="start_date">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{% trans "结束日期" %}</label>
+                        <input type="date" class="form-control" name="end_date">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 筛选条件 -->
+            <div class="config-group">
+                <div class="config-group-title">{% trans "筛选条件" %}</div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">{% trans "团队" %}</label>
+                        <select class="form-select" name="filter_team">
+                            <option value="">{% trans "所有团队" %}</option>
+                            <option value="1">{% trans "开发团队" %}</option>
+                            <option value="2">{% trans "测试团队" %}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{% trans "项目" %}</label>
+                        <select class="form-select" name="filter_project">
+                            <option value="">{% trans "所有项目" %}</option>
+                            <option value="1">{% trans "项目A" %}</option>
+                            <option value="2">{% trans "项目B" %}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{% trans "状态" %}</label>
+                        <select class="form-select" name="filter_status">
+                            <option value="">{% trans "所有状态" %}</option>
+                            <option value="todo">{% trans "待办" %}</option>
+                            <option value="in_progress">{% trans "进行中" %}</option>
+                            <option value="completed">{% trans "已完成" %}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 步骤4: 图表设置 -->
+    <div class="form-step" id="step-4">
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-chart-bar me-2"></i>{% trans "图表设置" %}
+            </div>
+            
+            <!-- 图表类型选择 -->
+            <div class="mb-4">
+                <label class="form-label">{% trans "选择图表类型" %}</label>
+                <div class="chart-type-selector">
+                    <div class="chart-type-option selected" data-chart="bar">
+                        <div class="chart-type-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div>{% trans "柱状图" %}</div>
+                    </div>
+                    <div class="chart-type-option" data-chart="line">
+                        <div class="chart-type-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div>{% trans "折线图" %}</div>
+                    </div>
+                    <div class="chart-type-option" data-chart="pie">
+                        <div class="chart-type-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div>{% trans "饼图" %}</div>
+                    </div>
+                    <div class="chart-type-option" data-chart="doughnut">
+                        <div class="chart-type-icon">
+                            <i class="fas fa-dot-circle"></i>
+                        </div>
+                        <div>{% trans "环形图" %}</div>
+                    </div>
+                </div>
+                <input type="hidden" name="chart_type" id="selected-chart-type" value="bar">
+            </div>
+            
+            <!-- 图表样式 -->
+            <div class="config-group">
+                <div class="config-group-title">{% trans "图表样式" %}</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">{% trans "主色调" %}</label>
+                        <input type="color" class="color-picker" name="primary_color" value="#007bff">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{% trans "辅助色调" %}</label>
+                        <input type="color" class="color-picker" name="secondary_color" value="#6c757d">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 显示选项 -->
+            <div class="config-group">
+                <div class="config-group-title">{% trans "显示选项" %}</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="show_legend" id="show-legend" checked>
+                            <label class="form-check-label" for="show-legend">
+                                {% trans "显示图例" %}
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="show_grid" id="show-grid" checked>
+                            <label class="form-check-label" for="show-grid">
+                                {% trans "显示网格线" %}
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="show_labels" id="show-labels" checked>
+                            <label class="form-check-label" for="show-labels">
+                                {% trans "显示数据标签" %}
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="enable_animation" id="enable-animation" checked>
+                            <label class="form-check-label" for="enable-animation">
+                                {% trans "启用动画效果" %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 步骤5: 预览确认 -->
+    <div class="form-step" id="step-5">
+        <div class="form-section">
+            <div class="section-title">
+                <i class="fas fa-eye me-2"></i>{% trans "预览确认" %}
+            </div>
+            
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="preview-container" id="chart-preview">
+                        <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">{% trans "报表预览" %}</h5>
+                        <p class="text-muted">{% trans "生成的报表预览将在这里显示" %}</p>
+                        <button type="button" class="btn btn-primary" id="generate-preview">
+                            <i class="fas fa-play me-2"></i>{% trans "生成预览" %}
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4">
+                    <div class="form-section">
+                        <div class="section-title">{% trans "配置摘要" %}</div>
+                        <div class="config-item">
+                            <div class="config-label">{% trans "报表名称" %}</div>
+                            <div class="config-value" id="summary-name">-</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">{% trans "报表类型" %}</div>
+                            <div class="config-value" id="summary-type">-</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">{% trans "图表类型" %}</div>
+                            <div class="config-value" id="summary-chart">-</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">{% trans "数据源" %}</div>
+                            <div class="config-value" id="summary-source">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- 导航按钮 -->
+<div class="form-navigation">
+    <div class="d-flex justify-content-between align-items-center">
+        <button type="button" class="btn btn-outline-secondary" id="prev-step" disabled>
+            <i class="fas fa-arrow-left me-2"></i>{% trans "上一步" %}
+        </button>
+        
+        <div class="text-center">
+            <span id="step-info">{% trans "第 1 步，共 5 步" %}</span>
+        </div>
+        
+        <button type="button" class="btn btn-success" id="next-step">
+            {% trans "下一步" %} <i class="fas fa-arrow-right ms-2"></i>
+        </button>
+        
+        <button type="submit" class="btn btn-primary d-none" id="create-btn">
+            <i class="fas fa-plus me-2"></i>{% trans "创建报表" %}
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentStep = 1;
+    const totalSteps = 5;
+    let selectedTemplate = null;
+    let previewChart = null;
+    
+    // 步骤控制
+    function updateStep(step) {
+        // 隐藏所有步骤
+        document.querySelectorAll('.form-step').forEach(el => {
+            el.classList.remove('active');
+        });
+        
+        // 显示当前步骤
+        document.getElementById(`step-${step}`).classList.add('active');
+        
+        // 更新步骤指示器
+        document.querySelectorAll('.step').forEach((el, index) => {
+            el.classList.remove('active', 'completed');
+            if (index + 1 < step) {
+                el.classList.add('completed');
+            } else if (index + 1 === step) {
+                el.classList.add('active');
+            }
+        });
+        
+        // 更新导航按钮
+        document.getElementById('prev-step').disabled = step === 1;
+        document.getElementById('next-step').style.display = step === totalSteps ? 'none' : 'block';
+        document.getElementById('create-btn').style.display = step === totalSteps ? 'block' : 'none';
+        
+        // 更新步骤信息
+        document.getElementById('step-info').textContent = `第 ${step} 步，共 ${totalSteps} 步`;
+        
+        currentStep = step;
+    }
+    
+    // 模板选择
+    document.querySelectorAll('.report-template').forEach(template => {
+        template.addEventListener('click', function() {
+            document.querySelectorAll('.report-template').forEach(t => t.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedTemplate = this.dataset.template;
+            document.getElementById('selected-template').value = selectedTemplate;
+            
+            // 自动进入下一步
+            setTimeout(() => {
+                updateStep(2);
+                updateReportTypeDisplay();
+            }, 300);
+        });
+    });
+    
+    // 图表类型选择
+    document.querySelectorAll('.chart-type-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.chart-type-option').forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+            document.getElementById('selected-chart-type').value = this.dataset.chart;
+        });
+    });
+    
+    // 数据源选择
+    document.querySelectorAll('.data-source-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.data-source-option').forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+            this.querySelector('input[type="radio"]').checked = true;
+        });
+    });
+    
+    // 导航按钮
+    document.getElementById('prev-step').addEventListener('click', function() {
+        if (currentStep > 1) {
+            updateStep(currentStep - 1);
+        }
+    });
+    
+    document.getElementById('next-step').addEventListener('click', function() {
+        if (validateCurrentStep()) {
+            if (currentStep < totalSteps) {
+                updateStep(currentStep + 1);
+                if (currentStep === 5) {
+                    updateSummary();
+                }
+            }
+        }
+    });
+    
+    // 生成预览
+    document.getElementById('generate-preview').addEventListener('click', function() {
+        generatePreview();
+    });
+    
+    // 表单验证
+    function validateCurrentStep() {
+        switch (currentStep) {
+            case 1:
+                if (!selectedTemplate) {
+                    alert('请选择一个报表模板');
+                    return false;
+                }
+                break;
+            case 2:
+                const name = document.querySelector('input[name="name"]').value;
+                if (!name.trim()) {
+                    alert('请输入报表名称');
+                    document.querySelector('input[name="name"]').focus();
+                    return false;
+                }
+                break;
+        }
+        return true;
+    }
+    
+    // 更新报表类型显示
+    function updateReportTypeDisplay() {
+        const typeMap = {
+            'dashboard': '仪表板',
+            'task': '任务报表',
+            'team': '团队绩效',
+            'project': '项目进度',
+            'custom': '自定义报表'
+        };
+        document.getElementById('report-type-display').value = typeMap[selectedTemplate] || '';
+    }
+    
+    // 更新配置摘要
+    function updateSummary() {
+        const name = document.querySelector('input[name="name"]').value;
+        const chartType = document.getElementById('selected-chart-type').value;
+        const dataSource = document.querySelector('input[name="data_source"]:checked').value;
+        
+        const typeMap = {
+            'dashboard': '仪表板',
+            'task': '任务报表',
+            'team': '团队绩效',
+            'project': '项目进度',
+            'custom': '自定义报表'
+        };
+        
+        const chartMap = {
+            'bar': '柱状图',
+            'line': '折线图',
+            'pie': '饼图',
+            'doughnut': '环形图'
+        };
+        
+        const sourceMap = {
+            'default': '默认数据库',
+            'custom': '自定义数据'
+        };
+        
+        document.getElementById('summary-name').textContent = name || '-';
+        document.getElementById('summary-type').textContent = typeMap[selectedTemplate] || '-';
+        document.getElementById('summary-chart').textContent = chartMap[chartType] || '-';
+        document.getElementById('summary-source').textContent = sourceMap[dataSource] || '-';
+    }
+    
+    // 生成预览
+    function generatePreview() {
+        const previewContainer = document.getElementById('chart-preview');
+        previewContainer.innerHTML = '<canvas id="preview-chart" width="400" height="200"></canvas>';
+        previewContainer.classList.add('has-content');
+        
+        const ctx = document.getElementById('preview-chart').getContext('2d');
+        const chartType = document.getElementById('selected-chart-type').value;
+        
+        // 模拟数据
+        const mockData = {
+            labels: ['一月', '二月', '三月', '四月', '五月', '六月'],
+            datasets: [{
+                label: '示例数据',
+                data: [12, 19, 3, 5, 2, 3],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 205, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 205, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        if (previewChart) {
+            previewChart.destroy();
+        }
+        
+        previewChart = new Chart(ctx, {
+            type: chartType,
+            data: mockData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: document.getElementById('show-legend').checked
+                    }
+                },
+                scales: chartType === 'pie' || chartType === 'doughnut' ? {} : {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: document.getElementById('show-grid').checked
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 表单提交
+    document.getElementById('create-report-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 这里实现表单提交逻辑
+        const formData = new FormData(this);
+        console.log('提交报表数据:', Object.fromEntries(formData));
+        
+        alert('报表创建成功！');
+        window.location.href = '/reports/';
+    });
+});
+</script>
+{% endblock %}

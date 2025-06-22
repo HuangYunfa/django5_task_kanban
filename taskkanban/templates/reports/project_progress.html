@@ -1,0 +1,507 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "项目进度报表" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.report-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.project-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #17a2b8;
+}
+
+.project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.progress-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(#17a2b8 0%, #17a2b8 var(--progress), #e9ecef var(--progress), #e9ecef 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: 0 auto 1rem;
+}
+
+.progress-circle::before {
+    content: '';
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+}
+
+.progress-text {
+    position: relative;
+    z-index: 2;
+    font-weight: bold;
+    color: #17a2b8;
+    font-size: 1.2rem;
+}
+
+.milestone-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-left: 3px solid #17a2b8;
+    background: #f8f9fa;
+    margin-bottom: 1rem;
+    border-radius: 0 5px 5px 0;
+    position: relative;
+}
+
+.milestone-item.completed {
+    border-left-color: #28a745;
+    background: #d4edda;
+}
+
+.milestone-item.overdue {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+
+.milestone-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    color: white;
+}
+
+.milestone-icon.completed { background: #28a745; }
+.milestone-icon.pending { background: #17a2b8; }
+.milestone-icon.overdue { background: #dc3545; }
+
+.milestone-info {
+    flex: 1;
+}
+
+.milestone-title {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.milestone-date {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.status-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-on-track { background: #d4edda; color: #155724; }
+.status-at-risk { background: #fff3cd; color: #856404; }
+.status-delayed { background: #f8d7da; color: #721c24; }
+
+.timeline-container {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-line {
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 2rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -1.5rem;
+    top: 0.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #17a2b8;
+    border: 3px solid white;
+    box-shadow: 0 0 0 3px #17a2b8;
+}
+
+.timeline-marker.completed {
+    background: #28a745;
+    box-shadow: 0 0 0 3px #28a745;
+}
+
+.timeline-marker.overdue {
+    background: #dc3545;
+    box-shadow: 0 0 0 3px #dc3545;
+}
+
+.timeline-content {
+    background: white;
+    padding: 1rem;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-header text-center">
+    <h1><i class="fas fa-project-diagram me-2"></i>{% trans "项目进度报表" %}</h1>
+    <p class="mb-0">{% trans "追踪项目里程碑和整体进度" %}</p>
+</div>
+
+<!-- 筛选器 -->
+<div class="filter-section">
+    <form method="get" class="row align-items-end">
+        <div class="col-md-3">
+            {{ filter_form.start_date.label_tag }}
+            {{ filter_form.start_date }}
+        </div>
+        <div class="col-md-3">
+            {{ filter_form.end_date.label_tag }}
+            {{ filter_form.end_date }}
+        </div>
+        <div class="col-md-2">
+            {{ filter_form.team.label_tag }}
+            {{ filter_form.team }}
+        </div>
+        <div class="col-md-2">
+            {{ filter_form.board.label_tag }}
+            {{ filter_form.board }}
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-info w-100">
+                <i class="fas fa-filter me-1"></i>{% trans "筛选" %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 项目整体进度 -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-chart-bar me-2"></i>{% trans "项目进度对比" %}
+            </div>
+            <canvas id="projectProgressChart" height="80"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="project-card">
+            <div class="chart-title text-center">
+                <i class="fas fa-bullseye me-2"></i>{% trans "总体进度" %}
+            </div>
+            <div class="progress-circle" style="--progress: {{ project_stats.overall_progress }}%;">
+                <div class="progress-text">{{ project_stats.overall_progress|floatformat:1 }}%</div>
+            </div>
+            <div class="text-center">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-primary h5">{{ project_stats.total_projects }}</div>
+                        <small class="text-muted">{% trans "项目总数" %}</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-success h5">{{ project_stats.completed_projects }}</div>
+                        <small class="text-muted">{% trans "已完成" %}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 项目列表 -->
+<div class="row">
+    {% for project in project_stats.project_stats %}
+    <div class="col-lg-6 mb-4">
+        <div class="project-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-folder-open me-2"></i>{{ project.board_name }}
+                </h5>
+                <span class="status-badge status-{{ project.status_class }}">
+                    {{ project.status_text }}
+                </span>
+            </div>
+            
+            <!-- 进度条 -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted">{% trans "完成进度" %}</span>
+                    <span class="text-primary font-weight-bold">{{ project.progress_rate|floatformat:1 }}%</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-info" role="progressbar" 
+                         style="width: {{ project.progress_rate }}%" 
+                         aria-valuenow="{{ project.progress_rate }}" 
+                         aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            
+            <!-- 项目统计 -->
+            <div class="row mb-3">
+                <div class="col-3 text-center">
+                    <div class="text-primary h6">{{ project.total_tasks }}</div>
+                    <small class="text-muted">{% trans "总任务" %}</small>
+                </div>
+                <div class="col-3 text-center">
+                    <div class="text-success h6">{{ project.completed_tasks }}</div>
+                    <small class="text-muted">{% trans "已完成" %}</small>
+                </div>
+                <div class="col-3 text-center">
+                    <div class="text-warning h6">{{ project.in_progress_tasks }}</div>
+                    <small class="text-muted">{% trans "进行中" %}</small>
+                </div>
+                <div class="col-3 text-center">
+                    <div class="text-info h6">{{ project.todo_tasks }}</div>
+                    <small class="text-muted">{% trans "待办" %}</small>
+                </div>
+            </div>
+            
+            <!-- 关键信息 -->
+            <div class="small text-muted">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>{% trans "开始日期:" %}</span>
+                    <span>{{ project.start_date|date:"Y-m-d" }}</span>
+                </div>
+                {% if project.end_date %}
+                <div class="d-flex justify-content-between mb-1">
+                    <span>{% trans "结束日期:" %}</span>
+                    <span>{{ project.end_date|date:"Y-m-d" }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <span>{% trans "负责团队:" %}</span>
+                    <span>{{ project.team_name|default:"未分配" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="project-card text-center py-4">
+            <i class="fas fa-project-diagram fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">{% trans "暂无项目数据" %}</h5>
+            <p class="text-muted">{% trans "请调整筛选条件或创建项目" %}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 里程碑时间线 -->
+<div class="row">
+    <div class="col-12">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-flag-checkered me-2"></i>{% trans "项目里程碑" %}
+            </div>
+            
+            {% if project_stats.milestones %}
+            <div class="timeline-container">
+                <div class="timeline-line"></div>
+                {% for milestone in project_stats.milestones %}
+                <div class="timeline-item">
+                    <div class="timeline-marker {% if milestone.is_completed %}completed{% elif milestone.is_overdue %}overdue{% endif %}"></div>
+                    <div class="timeline-content">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ milestone.title }}</h6>
+                                <p class="mb-2 text-muted">{{ milestone.description }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>{{ milestone.due_date|date:"Y-m-d" }}
+                                    <i class="fas fa-folder ms-3 me-1"></i>{{ milestone.project_name }}
+                                </small>
+                            </div>
+                            <span class="status-badge status-{{ milestone.status_class }}">
+                                {{ milestone.status_text }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-flag-checkered fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">{% trans "暂无里程碑数据" %}</h5>
+                <p class="text-muted">{% trans "项目里程碑将在这里显示" %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 风险和建议 -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-exclamation-triangle me-2 text-warning"></i>{% trans "风险提醒" %}
+            </div>
+            
+            {% if project_stats.risk_alerts %}
+            {% for alert in project_stats.risk_alerts %}
+            <div class="alert alert-{{ alert.level }} d-flex align-items-center mb-2" role="alert">
+                <i class="fas fa-{{ alert.icon }} me-2"></i>
+                <div>
+                    <strong>{{ alert.title }}</strong>
+                    <div class="small">{{ alert.message }}</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-3">
+                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                <p class="text-muted mb-0">{% trans "当前没有风险提醒" %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-lightbulb me-2 text-info"></i>{% trans "优化建议" %}
+            </div>
+            
+            {% if project_stats.suggestions %}
+            {% for suggestion in project_stats.suggestions %}
+            <div class="milestone-item">
+                <div class="milestone-icon pending">
+                    <i class="fas fa-{{ suggestion.icon }}"></i>
+                </div>
+                <div class="milestone-info">
+                    <div class="milestone-title">{{ suggestion.title }}</div>
+                    <div class="milestone-date">{{ suggestion.description }}</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-3">
+                <i class="fas fa-thumbs-up fa-2x text-success mb-2"></i>
+                <p class="text-muted mb-0">{% trans "项目运行良好，暂无建议" %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 导出和操作 -->
+<div class="row">
+    <div class="col-12">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-download me-2"></i>{% trans "导出报表" %}
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button class="btn btn-outline-primary me-2">
+                        <i class="fas fa-file-pdf me-1"></i>{% trans "导出PDF" %}
+                    </button>
+                    <button class="btn btn-outline-success me-2">
+                        <i class="fas fa-file-excel me-1"></i>{% trans "导出Excel" %}
+                    </button>
+                    <button class="btn btn-outline-info">
+                        <i class="fas fa-chart-line me-1"></i>{% trans "生成甘特图" %}
+                    </button>
+                </div>
+                <div>
+                    <a href="{% url 'reports:index' %}" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>{% trans "返回仪表板" %}
+                    </a>
+                    <a href="{% url 'reports:custom' %}" class="btn btn-warning">
+                        <i class="fas fa-cogs me-1"></i>{% trans "自定义报表" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 项目进度对比图
+    const projectProgressData = {{ chart_data.project_progress|safe }};
+    if (projectProgressData) {
+        const ctx = document.getElementById('projectProgressChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: projectProgressData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
