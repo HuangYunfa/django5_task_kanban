@@ -15,6 +15,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 
 from .models import Board, BoardList, BoardMember
+from tasks.models import Task
 from .forms import (
     BoardCreateForm, BoardUpdateForm, BoardListCreateForm, 
     BoardMemberInviteForm, BoardSearchForm
@@ -261,12 +262,11 @@ class BoardDetailView(LoginRequiredMixin, BoardAccessMixin, DetailView):
             user=self.request.user,
             role__in=['admin', 'owner']
         ).exists()
-        
-        # 统计信息
+          # 统计信息
         context['total_tasks'] = Task.objects.filter(board_list__board=board).count()
         context['completed_tasks'] = Task.objects.filter(
             board_list__board=board,
-            status='completed'
+            status='done'
         ).count()
         
         # 表单

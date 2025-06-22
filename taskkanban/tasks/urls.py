@@ -20,4 +20,8 @@ urlpatterns = [
     path('<int:pk>/delete/', views.TaskDeleteView.as_view(), name='delete'),
     # 任务状态更新
     path('<int:pk>/status/', views.TaskStatusUpdateView.as_view(), name='status_update'),
+    
+    # API路由
+    path('<int:pk>/comments/', views.TaskCommentCreateView.as_view(), name='comment_create'),
+    path('<int:pk>/move/', views.TaskMoveView.as_view(), name='move'),
 ]

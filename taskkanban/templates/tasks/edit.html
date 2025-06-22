@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "编辑任务" %} - {{ task.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tasks.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- 面包屑导航 -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'boards:detail' task.board.slug %}">{{ task.board.name }}</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'tasks:detail' task.pk %}">{{ task.title }}</a>
+                    </li>
+                    <li class="breadcrumb-item active">{% trans "编辑任务" %}</li>
+                </ol>
+            </nav>
+
+            <!-- 页面标题 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-edit me-2"></i>
+                    {% trans "编辑任务" %}
+                </h2>
+                <a href="{% url 'tasks:detail' task.pk %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    {% trans "返回" %}
+                </a>
+            </div>
+
+            <!-- 编辑表单 -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- 基本信息 -->
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    {{ form.title|as_crispy_field }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.description|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.status|as_crispy_field }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.priority|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 分配和分类 -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.board_list|as_crispy_field }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.assignees|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.due_date|as_crispy_field }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.labels|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 表单按钮 -->
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>
+                                    {% trans "保存更改" %}
+                                </button>
+                                <a href="{% url 'tasks:detail' task.pk %}" class="btn btn-secondary ms-2">
+                                    {% trans "取消" %}
+                                </a>
+                            </div>
+                            <div>
+                                <a href="{% url 'tasks:delete' task.pk %}" class="btn btn-outline-danger">
+                                    <i class="fas fa-trash me-1"></i>
+                                    {% trans "删除任务" %}
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 任务历史 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        {% trans "变更历史" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">{% trans "任务创建" %}</h6>
+                                <p class="timeline-description">
+                                    {% blocktrans with creator=task.creator.get_display_name date=task.created_at %}
+                                    由 {{ creator }} 于 {{ date }} 创建
+                                    {% endblocktrans %}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {% if task.updated_at != task.created_at %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">{% trans "最后更新" %}</h6>
+                                <p class="timeline-description">
+                                    {% blocktrans with date=task.updated_at %}
+                                    于 {{ date }} 更新
+                                    {% endblocktrans %}
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 日期时间选择器增强
+    const dueDateInput = document.querySelector('input[name="due_date"]');
+    if (dueDateInput) {
+        // 设置最小日期为当前时间
+        const now = new Date();
+        const isoString = now.toISOString().slice(0, 16);
+        dueDateInput.min = isoString;
+    }
+
+    // 多选框增强
+    const assigneesSelect = document.querySelector('select[name="assignees"]');
+    if (assigneesSelect) {
+        // 这里可以集成更好的多选组件，如 Select2
+        assigneesSelect.multiple = true;
+    }
+
+    const labelsSelect = document.querySelector('select[name="labels"]');
+    if (labelsSelect) {
+        labelsSelect.multiple = true;
+    }
+
+    // 表单验证增强
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const title = document.querySelector('input[name="title"]');
+        if (title.value.trim().length < 2) {
+            e.preventDefault();
+            alert('{% trans "任务标题至少需要2个字符" %}');
+            title.focus();
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -37px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid #007bff;
+}
+
+.timeline-title {
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.timeline-description {
+    margin-bottom: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

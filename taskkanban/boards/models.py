@@ -77,15 +77,20 @@ class Board(models.Model):
         indexes = [
             models.Index(fields=['owner', '-updated_at']),
             models.Index(fields=['team', '-updated_at']),
-            models.Index(fields=['visibility', '-updated_at']),
-        ]
+            models.Index(fields=['visibility', '-updated_at']),        ]
     
     def __str__(self):
         return self.name
     
     def save(self, *args, **kwargs):
         if not self.slug:
+            # 使用名称生成slug，如果为空则使用UUID
             base_slug = slugify(self.name)
+            if not base_slug:
+                # 对于中文等无法slugify的名称，使用名称拼音或UUID
+                import uuid
+                base_slug = str(uuid.uuid4())[:8]
+            
             slug = base_slug
             counter = 1
             # 排除自己（更新时）

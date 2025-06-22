@@ -175,7 +175,7 @@
             <div class="col-md-4 text-end">
                 {% if user == board.owner or user in board.get_admin_members %}
                 <div class="btn-group">
-                    <a href="{% url 'boards:update' board.slug %}" class="btn btn-light">
+                    <a href="{% url 'boards:edit' board.slug %}" class="btn btn-light">
                         <i class="fas fa-edit me-1"></i>
                         {% trans "编辑" %}
                     </a>
@@ -475,7 +475,7 @@ document.getElementById('addListForm').addEventListener('submit', function(e) {
     
     const formData = new FormData(this);
     
-    fetch('{% url "boards:api_list_create" board.slug %}', {
+    fetch('{% url "boards:list_create_api" board.slug %}', {
         method: 'POST',
         body: formData,
         headers: {
@@ -503,7 +503,7 @@ document.getElementById('inviteMemberForm').addEventListener('submit', function(
     
     const formData = new FormData(this);
     
-    fetch('{% url "boards:api_member_invite" board.slug %}', {
+    fetch('{% url "boards:member_invite_api" board.slug %}', {
         method: 'POST',
         body: formData,
         headers: {

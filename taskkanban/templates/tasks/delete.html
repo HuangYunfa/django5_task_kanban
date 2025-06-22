@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "删除任务" %} - {{ task.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tasks.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- 面包屑导航 -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'boards:detail' task.board.slug %}">{{ task.board.name }}</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'tasks:detail' task.pk %}">{{ task.title }}</a>
+                    </li>
+                    <li class="breadcrumb-item active">{% trans "删除任务" %}</li>
+                </ol>
+            </nav>
+
+            <!-- 删除确认卡片 -->
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% trans "删除任务确认" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-warning me-2"></i>
+                        <strong>{% trans "警告：" %}</strong>
+                        {% trans "此操作不可撤销！删除任务后，所有相关的评论、附件和历史记录都会被永久删除。" %}
+                    </div>
+
+                    <h6>{% trans "即将删除的任务：" %}</h6>
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ task.title }}</h6>
+                                <small class="text-muted">
+                                    {% trans "所属看板：" %}{{ task.board.name }} › {{ task.board_list.name }}
+                                </small>
+                                {% if task.description %}
+                                <p class="mt-2 mb-1 text-muted">
+                                    {{ task.description|truncatewords:20 }}
+                                </p>
+                                {% endif %}
+                            </div>
+                            <span class="badge bg-secondary">{{ task.get_status_display }}</span>
+                        </div>
+                    </div>
+
+                    <!-- 统计信息 -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <strong class="d-block">{{ task.comments.count }}</strong>
+                                <small class="text-muted">{% trans "评论" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <strong class="d-block">{{ task.attachments.count }}</strong>
+                                <small class="text-muted">{% trans "附件" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <strong class="d-block">{{ task.assignees.count }}</strong>
+                                <small class="text-muted">{% trans "分配人" %}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 确认表单 -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="confirmDelete" class="form-label">
+                                {% trans "请输入任务标题以确认删除：" %}
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="confirmDelete" 
+                                   name="confirm_title"
+                                   placeholder="{{ task.title }}"
+                                   required>
+                            <div class="form-text">
+                                {% trans "输入" %} "<strong>{{ task.title }}</strong>" {% trans "以确认删除" %}
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="understandWarning"
+                                   name="understand_warning"
+                                   required>
+                            <label class="form-check-label" for="understandWarning">
+                                {% trans "我理解此操作不可撤销，并愿意承担后果" %}
+                            </label>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'tasks:detail' task.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                {% trans "取消" %}
+                            </a>
+                            <button type="submit" 
+                                    class="btn btn-danger" 
+                                    id="deleteButton"
+                                    disabled>
+                                <i class="fas fa-trash me-1"></i>
+                                {% trans "确认删除" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 替代方案提示 -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>
+                        <i class="fas fa-lightbulb me-2 text-warning"></i>
+                        {% trans "替代方案" %}
+                    </h6>
+                    <p class="mb-2">{% trans "如果您不想永久删除任务，可以考虑：" %}</p>
+                    <ul class="mb-0">
+                        <li>{% trans "将任务移动到"已完成"列表" %}</li>
+                        <li>{% trans "将任务状态改为"已取消"" %}</li>
+                        <li>{% trans "将任务移动到归档看板" %}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmInput = document.getElementById('confirmDelete');
+    const understandCheckbox = document.getElementById('understandWarning');
+    const deleteButton = document.getElementById('deleteButton');
+    const expectedTitle = '{{ task.title }}';
+
+    function checkDeleteConditions() {
+        const titleMatches = confirmInput.value === expectedTitle;
+        const understood = understandCheckbox.checked;
+        
+        deleteButton.disabled = !(titleMatches && understood);
+        
+        if (titleMatches) {
+            confirmInput.classList.remove('is-invalid');
+            confirmInput.classList.add('is-valid');
+        } else if (confirmInput.value.length > 0) {
+            confirmInput.classList.remove('is-valid');
+            confirmInput.classList.add('is-invalid');
+        } else {
+            confirmInput.classList.remove('is-valid', 'is-invalid');
+        }
+    }
+
+    confirmInput.addEventListener('input', checkDeleteConditions);
+    understandCheckbox.addEventListener('change', checkDeleteConditions);
+
+    // 表单提交前最终确认
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!confirm('{% trans "您确定要删除此任务吗？此操作不可撤销！" %}')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

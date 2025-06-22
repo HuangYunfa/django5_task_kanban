@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "任务列表" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tasks.css' %}">
+<style>
+    .task-stats {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .task-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .task-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .task-priority {
+        width: 4px;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        border-radius: 8px 0 0 8px;
+    }
+    
+    .priority-low { background-color: #6c757d; }
+    .priority-normal { background-color: #007bff; }
+    .priority-high { background-color: #ffc107; }
+    .priority-urgent { background-color: #dc3545; }
+    
+    .task-status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-todo { background-color: #6c757d; color: white; }
+    .status-in_progress { background-color: #007bff; color: white; }
+    .status-review { background-color: #ffc107; color: #000; }
+    .status-done { background-color: #28a745; color: white; }
+    .status-blocked { background-color: #dc3545; color: white; }
+    
+    .assignee-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid white;
+        margin-left: -5px;
+    }
+    
+    .search-filters {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+        transform: translateY(-1px);    }
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">
+            <i class="fas fa-tasks me-2"></i>
+            {% trans "任务管理" %}
+        </h1>
+        <a href="{% url 'tasks:create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            {% trans "创建任务" %}
+        </a>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_tasks }}</div>
+            <div class="stat-label">{% trans "总任务数" %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ my_tasks }}</div>
+            <div class="stat-label">{% trans "我的任务" %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ overdue_tasks }}</div>
+            <div class="stat-label">{% trans "逾期任务" %}</div>
+        </div>
+    </div>
+    
+    <!-- 搜索和过滤 -->
+    <div class="filters-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                {{ search_form.q.label_tag }}
+                {{ search_form.q }}
+            </div>
+            <div class="col-md-2">
+                {{ search_form.status.label_tag }}
+                {{ search_form.status }}
+            </div>
+            <div class="col-md-2">
+                {{ search_form.priority.label_tag }}
+                {{ search_form.priority }}
+            </div>
+            <div class="col-md-2">
+                {{ search_form.assignee.label_tag }}
+                {{ search_form.assignee }}
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search me-1"></i>
+                    {% trans "搜索" %}
+                </button>
+                <a href="{% url 'tasks:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>
+                    {% trans "清除" %}
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 任务列表 -->
+    <div class="row">
+        {% for task in tasks %}
+        <div class="col-md-6 col-lg-4">
+            <div class="task-card" onclick="window.location.href='{% url 'tasks:detail' task.pk %}'">
+                {% if task.labels.exists %}
+                <div class="task-labels">
+                    {% for label in task.labels.all %}
+                    <span class="task-label" style="background-color: {{ label.color }};">
+                        {{ label.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="task-title">{{ task.title }}</div>
+                
+                {% if task.description %}
+                <div class="text-muted small mb-2">
+                    {{ task.description|truncatewords:10 }}
+                </div>
+                {% endif %}
+                
+                <div class="task-meta">
+                    <div>
+                        <span class="status-badge bg-{{ task.status|default:'secondary' }}">
+                            {{ task.get_status_display }}
+                        </span>
+                        {% if task.priority == 'high' %}
+                        <i class="fas fa-exclamation priority-high ms-1"></i>
+                        {% elif task.priority == 'urgent' %}
+                        <i class="fas fa-exclamation-triangle priority-urgent ms-1"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        {% if task.due_date %}
+                        <span class="text-warning me-2">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ task.due_date|date:"m-d" }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if task.assignees.exists %}
+                        <div class="d-flex">
+                            {% for assignee in task.assignees.all|slice:":3" %}
+                            <img src="{{ assignee.avatar.url|default:'/static/images/default-avatar.png' }}" 
+                                 class="task-avatar" title="{{ assignee.get_display_name }}">
+                            {% endfor %}
+                            {% if task.assignees.count > 3 %}
+                            <span class="text-muted ms-1">+{{ task.assignees.count|add:"-3" }}</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-2 small text-muted">
+                    <span>{{ task.board.name }}</span>
+                    <span class="mx-1">•</span>
+                    <span>{{ task.board_list.name }}</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">{% trans "还没有任务" %}</h4>
+                <p class="text-muted">{% trans "创建第一个任务来开始工作吧！" %}</p>
+                <a href="{% url 'tasks:create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>
+                    {% trans "创建任务" %}
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 分页 -->
+    {% if is_paginated %}
+    <nav aria-label="{% trans '任务分页' %}">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1">&laquo; {% trans "首页" %}</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "上一页" %}</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">
+                    {% trans "第" %} {{ page_obj.number }} {% trans "页，共" %} {{ page_obj.paginator.num_pages }} {% trans "页" %}
+                </span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "下一页" %}</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">{% trans "末页" %} &raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 任务卡片悬停效果
+document.querySelectorAll('.task-card').forEach(function(card) {
+    card.style.cursor = 'pointer';
+});
+</script>
+{% endblock %}
