@@ -14,11 +14,11 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 
-from .models import Board, BoardList, BoardMember
+from .models import Board, BoardList, BoardMember, BoardLabel
 from tasks.models import Task
 from .forms import (
     BoardCreateForm, BoardUpdateForm, BoardListCreateForm, 
-    BoardMemberInviteForm, BoardSearchForm
+    BoardMemberInviteForm, BoardSearchForm, BoardLabelForm
 )
 from tasks.models import Task
 
@@ -64,12 +64,27 @@ class BoardAccessMixin(UserPassesTestMixin):
           # 检查团队成员权限
         if board.team and board.team.memberships.filter(user=user).exists():
             return True
-        
-        # 公开看板任何人都可以访问
+          # 公开看板任何人都可以访问
         if board.visibility == 'public':
             return True
         
         return False
+    
+    def has_board_edit_access(self, board, user):
+        """检查用户是否有看板编辑权限"""
+        if not board or not user.is_authenticated:
+            return False
+        
+        # 看板所有者总是有编辑权限
+        if board.owner == user:
+            return True
+        
+        # 检查看板管理员权限
+        return BoardMember.objects.filter(
+            board=board, 
+            user=user, 
+            role__in=['admin', 'owner']
+        ).exists()
 
 
 class BoardListView(LoginRequiredMixin, ListView):
@@ -520,8 +535,7 @@ class BoardMemberInviteAPIView(LoginRequiredMixin, BoardAccessMixin, View):
                         'username': member.user.username,
                         'email': member.user.email,
                         'display_name': member.user.get_display_name()
-                    },
-                    'role': member.role,
+                    },                    'role': member.role,
                     'joined_at': member.joined_at.isoformat()
                 }
             })
@@ -530,3 +544,169 @@ class BoardMemberInviteAPIView(LoginRequiredMixin, BoardAccessMixin, View):
             'success': False,
             'errors': form.errors
         }, status=400)
+
+
+# ============================================================================
+# 标签管理API视图
+# ============================================================================
+
+class BoardLabelListCreateView(LoginRequiredMixin, BoardAccessMixin, View):
+    """看板标签列表和创建API"""
+    
+    def get_board(self):
+        return get_object_or_404(Board, slug=self.kwargs['slug'])
+    
+    def get(self, request, slug):
+        """获取看板标签列表"""
+        board = self.get_board()
+        labels = board.labels.all().order_by('name')
+        
+        labels_data = []
+        for label in labels:
+            labels_data.append({
+                'id': label.id,
+                'name': label.name,
+                'color': label.color,
+                'task_count': label.tasks.count()
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'labels': labels_data
+        })
+    
+    def post(self, request, slug):
+        """创建新标签"""
+        board = self.get_board()
+        
+        # 只有有编辑权限的用户可以创建标签
+        if not self.has_board_edit_access(board, request.user):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        form = BoardLabelForm(request.POST, board=board)
+        if form.is_valid():
+            label = form.save()
+            
+            return JsonResponse({
+                'success': True,                'label': {
+                    'id': label.id,
+                    'name': label.name,
+                    'color': label.color,
+                    'task_count': 0
+                }
+            })
+        
+        return JsonResponse({
+            'success': False,
+            'errors': form.errors
+        }, status=400)
+
+
+class BoardLabelUpdateView(LoginRequiredMixin, BoardAccessMixin, View):
+    """标签更新API"""
+    
+    def get_board(self):
+        return get_object_or_404(Board, slug=self.kwargs['slug'])
+    
+    def get_label(self):
+        board = self.get_board()
+        return get_object_or_404(BoardLabel, pk=self.kwargs['label_pk'], board=board)
+    
+    def delete(self, request, slug, label_pk):
+        """删除标签"""
+        board = self.get_board()
+        label = self.get_label()
+        
+        # 只有有编辑权限的用户可以删除标签
+        if not self.has_board_edit_access(board, request.user):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        # 记录相关任务数量
+        task_count = label.tasks.count()
+        label_name = label.name
+        
+        # 删除标签（关联任务会自动解除关联）
+        label.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'标签 "{label_name}" 已删除，{task_count} 个任务已解除标签关联'
+        })
+
+
+class BoardListsAPIView(LoginRequiredMixin, View):
+    """获取看板列表API"""
+    
+    def get(self, request):
+        """获取用户可访问的看板列表"""
+        board_id = request.GET.get('board_id')
+        
+        if board_id:
+            # 获取指定看板的列表
+            try:
+                board = Board.objects.get(id=board_id)
+                if not self.has_board_access(board, request.user):
+                    return JsonResponse({'error': 'Permission denied'}, status=403)
+                
+                lists = BoardList.objects.filter(board=board).order_by('position')
+                lists_data = []
+                for board_list in lists:
+                    lists_data.append({
+                        'id': board_list.id,
+                        'name': board_list.name,
+                        'position': board_list.position,
+                        'task_count': board_list.tasks.count()
+                    })
+                
+                return JsonResponse(lists_data, safe=False)
+            except Board.DoesNotExist:
+                return JsonResponse({'error': 'Board not found'}, status=404)
+        else:
+            # 获取用户可访问的所有看板
+            boards = Board.objects.filter(
+                Q(owner=request.user) |
+                Q(members__user=request.user) |
+                Q(team__memberships__user=request.user) |
+                Q(visibility='public')
+            ).distinct().select_related('owner')
+            
+            boards_data = []
+            for board in boards:
+                boards_data.append({
+                    'id': board.id,
+                    'name': board.name,
+                    'slug': board.slug,
+                    'lists': [
+                        {
+                            'id': board_list.id,
+                            'name': board_list.name,
+                            'position': board_list.position
+                        }
+                        for board_list in board.lists.all().order_by('position')
+                    ]
+                })
+            
+            return JsonResponse(boards_data, safe=False)
+    
+    def has_board_access(self, board, user):
+        """检查用户是否有看板访问权限"""
+        if not board or not user.is_authenticated:
+            return False
+        
+        # 看板所有者总是有权限
+        if board.owner == user:
+            return True
+        
+        # 检查看板成员权限
+        if BoardMember.objects.filter(board=board, user=user).exists():
+            return True
+        
+        # 检查团队成员权限
+        if board.team and board.team.memberships.filter(user=user).exists():
+            return True
+        
+        # 公开看板任何人都可以访问
+        if board.visibility == 'public':
+            return True
+        
+        return False

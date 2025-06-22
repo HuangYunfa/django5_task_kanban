@@ -149,56 +149,68 @@
             </div>
         </form>
     </div>
-    
-    <!-- 批量操作工具栏 -->
+      <!-- 批量操作工具栏 -->
     <div class="batch-toolbar" id="batchToolbar" style="display: none;">
-        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-3">
-            <div>
-                <span id="selectedCount">0</span> {% trans "个任务已选中" %}
+        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-3 border">
+            <div class="d-flex align-items-center">
+                <input type="checkbox" id="selectAll" class="form-check-input me-2">
+                <label for="selectAll" class="form-check-label me-3">{% trans "全选" %}</label>
+                <span class="badge bg-primary" id="selectedCount">0</span>
+                <span class="ms-1">{% trans "个任务已选中" %}</span>
             </div>
             <div>
                 <div class="btn-group me-2">
-                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-cogs me-1"></i>
                         {% trans "批量操作" %}
                     </button>
                     <ul class="dropdown-menu">
                         <li>
-                            <button class="dropdown-item" onclick="batchChangeStatus()">
+                            <button class="dropdown-item batch-operation-btn" data-operation="change_status">
                                 <i class="fas fa-exchange-alt me-1"></i>
                                 {% trans "变更状态" %}
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item" onclick="batchChangePriority()">
+                            <button class="dropdown-item batch-operation-btn" data-operation="change_priority">
                                 <i class="fas fa-flag me-1"></i>
                                 {% trans "变更优先级" %}
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item" onclick="batchMoveToList()">
+                            <button class="dropdown-item batch-operation-btn" data-operation="move_to_list">
                                 <i class="fas fa-arrows-alt me-1"></i>
                                 {% trans "移动到列表" %}
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item" onclick="batchAssignToUser()">
+                            <button class="dropdown-item batch-operation-btn" data-operation="assign_to_user">
                                 <i class="fas fa-user-plus me-1"></i>
                                 {% trans "分配给用户" %}
                             </button>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <button class="dropdown-item text-danger" onclick="batchDelete()">
+                            <button class="dropdown-item text-danger batch-operation-btn" data-operation="delete">
                                 <i class="fas fa-trash me-1"></i>
                                 {% trans "删除任务" %}
                             </button>
                         </li>
                     </ul>
                 </div>
-                <button type="button" class="btn btn-secondary" onclick="clearSelection()">
+                <button type="button" class="btn btn-outline-secondary" id="clearSelection">
+                    <i class="fas fa-times me-1"></i>
                     {% trans "取消选择" %}
                 </button>
             </div>
+        </div>
+        
+        <!-- 操作进度条 -->
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress mb-2">
+                <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar"></div>
+            </div>
+            <div class="text-center small text-muted" id="progressText">{% trans "正在处理..." %}</div>
         </div>
     </div>
     
@@ -319,151 +331,170 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/batch-operations.js' %}"></script>
 <script>
-// 任务卡片悬停效果
-document.querySelectorAll('.task-card').forEach(function(card) {
-    card.style.cursor = 'pointer';
-});
-
-// 批量操作功能
-let selectedTasks = new Set();
-
-// 监听复选框变化
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('task-checkbox')) {
-        const taskId = e.target.value;
-        const toolbar = document.getElementById('batchToolbar');
-        const countSpan = document.getElementById('selectedCount');
-        
-        if (e.target.checked) {
-            selectedTasks.add(taskId);
-        } else {
-            selectedTasks.delete(taskId);
-        }
-        
-        countSpan.textContent = selectedTasks.size;
-        
-        if (selectedTasks.size > 0) {
-            toolbar.style.display = 'block';
-        } else {
-            toolbar.style.display = 'none';
-        }
-    }
-});
-
-// 清除选择
-function clearSelection() {
-    selectedTasks.clear();
-    document.querySelectorAll('.task-checkbox').forEach(cb => {
-        cb.checked = false;
+// 初始化批量操作组件
+document.addEventListener('DOMContentLoaded', function() {
+    // 创建批量操作实例
+    const batchOps = new BatchOperations('.container-fluid', {
+        selectAllCheckbox: '#selectAll',
+        taskCheckboxes: '.task-checkbox',
+        batchToolbar: '#batchToolbar',
+        operationButtons: '.batch-operation-btn',
+        selectedCountDisplay: '#selectedCount',
+        progressContainer: '#progressContainer',
+        progressBar: '#progressBar',
+        progressText: '#progressText',
+        apiUrl: '{% url "tasks:batch_operation" %}',
+        csrfToken: '{{ csrf_token }}',
+        confirmDeletion: true,
+        enableProgress: true
     });
-    document.getElementById('batchToolbar').style.display = 'none';
+
+    // 自定义操作处理器
+    batchOps.addOperationHandler('change_status', async function(selectedIds, button) {
+        const statusOptions = [
+            { value: 'todo', label: '{% trans "待办" %}' },
+            { value: 'in_progress', label: '{% trans "进行中" %}' },
+            { value: 'review', label: '{% trans "审核中" %}' },
+            { value: 'done', label: '{% trans "已完成" %}' },
+            { value: 'blocked', label: '{% trans "已阻塞" %}' }
+        ];
+        
+        return await this.showSelectDialog('{% trans "选择新状态" %}', statusOptions);
+    });
+
+    batchOps.addOperationHandler('change_priority', async function(selectedIds, button) {
+        const priorityOptions = [
+            { value: 'low', label: '{% trans "低优先级" %}' },
+            { value: 'normal', label: '{% trans "普通" %}' },
+            { value: 'high', label: '{% trans "高优先级" %}' },
+            { value: 'urgent', label: '{% trans "紧急" %}' }
+        ];
+        
+        return await this.showSelectDialog('{% trans "选择新优先级" %}', priorityOptions);
+    });
+
+    batchOps.addOperationHandler('move_to_list', async function(selectedIds, button) {
+        // 获取可用的看板列表
+        try {
+            const response = await fetch('{% url "boards:board_lists" %}?board_id=' + getCurrentBoardId());
+            const lists = await response.json();
+            const listOptions = lists.map(list => ({
+                value: list.id,
+                label: list.name
+            }));
+            
+            return await this.showSelectDialog('{% trans "选择目标列表" %}', listOptions);
+        } catch (error) {
+            console.error('获取列表失败:', error);
+            return null;
+        }
+    });
+
+    batchOps.addOperationHandler('assign_to_user', async function(selectedIds, button) {
+        // 获取可用的用户列表
+        try {
+            const response = await fetch('{% url "users:user_list_api" %}');
+            const users = await response.json();
+            const userOptions = users.map(user => ({
+                value: user.id,
+                label: user.display_name || user.username
+            }));
+            
+            return await this.showSelectDialog('{% trans "选择用户" %}', userOptions);
+        } catch (error) {
+            console.error('获取用户列表失败:', error);
+            return null;
+        }
+    });
+
+    // 成功回调
+    batchOps.onSuccess = function(data, operation) {
+        // 显示成功消息
+        this.showToast(data.message || '{% trans "操作成功" %}', 'success');
+        
+        // 延迟刷新页面以显示结果
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    };
+
+    // 错误回调
+    batchOps.onError = function(error, operation) {
+        this.showToast(error || '{% trans "操作失败" %}', 'error');
+    };
+
+    // 清除选择按钮事件
+    document.getElementById('clearSelection').addEventListener('click', function() {
+        batchOps.clearSelection();
+    });
+
+    // 任务卡片点击事件处理
+    document.addEventListener('click', function(e) {
+        // 防止复选框点击冒泡到任务卡片
+        if (e.target.classList.contains('task-checkbox')) {
+            e.stopPropagation();
+            return;
+        }
+        
+        // 处理任务卡片点击
+        if (e.target.closest('.task-content')) {
+            const taskCard = e.target.closest('.task-card');
+            const taskId = taskCard.dataset.taskId;
+            if (taskId) {
+                window.location.href = '{% url "tasks:detail" 0 %}'.replace('0', taskId);
+            }
+        }
+    });
+
+    // 键盘快捷键支持
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+A 全选
+        if (e.ctrlKey && e.key === 'a' && !e.target.matches('input, textarea')) {
+            e.preventDefault();
+            batchOps.toggleSelectAll(true);
+        }
+        
+        // Escape 取消选择
+        if (e.key === 'Escape') {
+            batchOps.clearSelection();
+        }
+        
+        // Delete 批量删除
+        if (e.key === 'Delete' && batchOps.selectedTasks.size > 0) {
+            e.preventDefault();
+            batchOps.performBatchOperation('delete');
+        }
+    });
+});
+
+// 辅助函数
+function getCurrentBoardId() {
+    // 从URL参数或页面数据中获取当前看板ID
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('board') || '';
 }
 
-// 批量操作函数
-function performBatchOperation(operation, extraData = {}) {
-    if (selectedTasks.size === 0) {
-        alert('请先选择要操作的任务');
-        return;
-    }
+// Toast消息显示
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
     
-    const formData = new FormData();
-    selectedTasks.forEach(taskId => {
-        formData.append('task_ids', taskId);
-    });
-    formData.append('operation', operation);
+    document.body.appendChild(toast);
     
-    // 添加额外数据
-    Object.keys(extraData).forEach(key => {
-        formData.append(key, extraData[key]);
-    });
-    
-    fetch('{% url "tasks:batch_operation" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    // 自动移除
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert('操作失败: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('操作失败，请重试');
-    });
+    }, 5000);
 }
-
-// 批量变更状态
-function batchChangeStatus() {
-    const newStatus = prompt('请选择新状态:\ntodo - 待办\nin_progress - 进行中\nreview - 审核中\ndone - 已完成\nblocked - 已阻塞');
-    if (newStatus && ['todo', 'in_progress', 'review', 'done', 'blocked'].includes(newStatus)) {
-        performBatchOperation('change_status', { new_status: newStatus });
-    } else if (newStatus) {
-        alert('无效的状态值');
-    }
-}
-
-// 批量变更优先级
-function batchChangePriority() {
-    const newPriority = prompt('请选择新优先级:\nlow - 低优先级\nnormal - 普通\nhigh - 高优先级\nurgent - 紧急');
-    if (newPriority && ['low', 'normal', 'high', 'urgent'].includes(newPriority)) {
-        performBatchOperation('change_priority', { new_priority: newPriority });
-    } else if (newPriority) {
-        alert('无效的优先级值');
-    }
-}
-
-// 批量移动到列表
-function batchMoveToList() {
-    const newListId = prompt('请输入目标列表ID:');
-    if (newListId) {
-        performBatchOperation('move_to_list', { new_list_id: newListId });
-    }
-}
-
-// 批量分配给用户
-function batchAssignToUser() {
-    const userId = prompt('请输入用户ID:');
-    if (userId) {
-        performBatchOperation('assign_to_user', { user_id: userId });
-    }
-}
-
-// 批量删除
-function batchDelete() {
-    if (confirm('确定要删除选中的 ' + selectedTasks.size + ' 个任务吗？此操作不可撤销！')) {
-        performBatchOperation('delete');
-    }
-}
-
-// 防止任务卡片上的复选框点击事件冒泡
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('task-checkbox')) {
-        e.stopPropagation();
-    }
-});
-
-// 添加Ctrl+A全选功能
-document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.key === 'a' && e.target.tagName !== 'INPUT') {
-        e.preventDefault();
-        const checkboxes = document.querySelectorAll('.task-checkbox');
-        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-        
-        checkboxes.forEach(cb => {
-            cb.checked = !allChecked;
-            const event = new Event('change');
-            cb.dispatchEvent(event);
-        });
-    }
-});
 </script>
 
 <style>
@@ -480,6 +511,13 @@ document.addEventListener('keydown', function(e) {
 .task-card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border-color: #007bff;
+    transform: translateY(-1px);
+}
+
+.task-card.selected {
+    background-color: #f8f9ff;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
 }
 
 .task-select {
@@ -491,14 +529,31 @@ document.addEventListener('keydown', function(e) {
 
 .task-content {
     cursor: pointer;
+    padding-right: 30px; /* 为复选框留出空间 */
 }
 
 .task-checkbox {
     transform: scale(1.2);
+    cursor: pointer;
+}
+
+.task-checkbox:checked {
+    background-color: #007bff;
+    border-color: #007bff;
 }
 
 .batch-toolbar {
     animation: slideDown 0.3s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.batch-toolbar.processing {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.progress-container {
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 @keyframes slideDown {
@@ -509,6 +564,68 @@ document.addEventListener('keydown', function(e) {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.task-labels {
+    margin-bottom: 8px;
+}
+
+.task-label {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    margin-right: 4px;
+    margin-bottom: 2px;
+}
+
+.task-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid white;
+    margin-left: -4px;
+}
+
+.task-meta {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.priority-high {
+    color: #ffc107;
+}
+
+.priority-urgent {
+    color: #dc3545;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .batch-toolbar .d-flex {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .batch-toolbar .btn-group {
+        margin-right: 0 !important;
     }
 }
 </style>

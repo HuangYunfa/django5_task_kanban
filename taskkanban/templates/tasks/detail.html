@@ -337,21 +337,45 @@
                 {% else %}
                     <p class="text-muted">{% trans "未分配" %}</p>
                 {% endif %}
-            </div>
-
-            <!-- 标签 -->
-            {% if task.labels.exists %}
+            </div>            <!-- 标签管理 -->
             <div class="task-sidebar">
-                <h6>{% trans "标签" %}</h6>
-                <div>
-                    {% for label in task.labels.all %}
-                    <span class="task-label" style="background-color: {{ label.color }};">
-                        {{ label.name }}
-                    </span>
-                    {% endfor %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">{% trans "标签" %}</h6>
+                    {% if can_edit %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleLabelEditor()">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    {% endif %}
                 </div>
+                
+                <!-- 标签显示区域 -->
+                <div id="labelDisplay">
+                    {% if task.labels.exists %}
+                        {% for label in task.labels.all %}
+                        <span class="task-label me-1 mb-1" style="background-color: {{ label.color }};">
+                            {{ label.name }}
+                        </span>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted small">暂无标签</div>
+                    {% endif %}
+                </div>
+                
+                <!-- 标签编辑器 -->
+                {% if can_edit %}
+                <div id="labelEditor" style="display: none;" class="mt-2">
+                    <div id="labelSelectorContainer"></div>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="saveLabelChanges()">
+                            保存
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="cancelLabelEdit()">
+                            取消
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
 
             <!-- 位置信息 -->
             <div class="task-sidebar">
@@ -410,6 +434,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/label-selector.js' %}"></script>
 <script>
 // 变更状态
 function changeStatus() {
@@ -502,8 +527,118 @@ function createCommentHTML(comment) {
                     <div class="mt-1">${comment.content.replace(/\n/g, '<br>')}</div>
                 </div>
             </div>
-        </div>
+        </div>    `;
+}
+
+// 标签管理功能
+let labelSelector = null;
+let originalLabels = [];
+
+function toggleLabelEditor() {
+    const display = document.getElementById('labelDisplay');
+    const editor = document.getElementById('labelEditor');
+    
+    if (editor.style.display === 'none') {
+        // 显示编辑器
+        display.style.display = 'none';
+        editor.style.display = 'block';
+        
+        // 初始化标签选择器
+        if (!labelSelector) {
+            const currentLabels = {{ task.labels.all|safe|default:"[]" }}.map(label => label.id);
+            originalLabels = [...currentLabels];
+            
+            labelSelector = new LabelSelector('#labelSelectorContainer', {
+                boardSlug: '{{ task.board.slug }}',
+                selectedLabels: currentLabels,
+                allowCreate: true,
+                multiple: true
+            });
+        }
+    } else {
+        cancelLabelEdit();
+    }
+}
+
+function cancelLabelEdit() {
+    document.getElementById('labelDisplay').style.display = 'block';
+    document.getElementById('labelEditor').style.display = 'none';
+    
+    // 恢复原始标签选择
+    if (labelSelector) {
+        labelSelector.setSelectedLabels(originalLabels);
+    }
+}
+
+async function saveLabelChanges() {
+    if (!labelSelector) return;
+    
+    const selectedLabels = labelSelector.getSelectedLabels();
+    
+    try {
+        const response = await fetch('{% url "tasks:label_update" task.pk %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                label_ids: selectedLabels
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 更新显示
+            updateLabelDisplay(data.labels);
+            cancelLabelEdit();
+            originalLabels = [...selectedLabels];
+            
+            // 显示成功消息
+            showMessage('标签更新成功', 'success');
+        } else {
+            showMessage('更新标签失败: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error updating labels:', error);
+        showMessage('更新标签时发生错误', 'error');
+    }
+}
+
+function updateLabelDisplay(labels) {
+    const container = document.getElementById('labelDisplay');
+    
+    if (labels.length === 0) {
+        container.innerHTML = '<div class="text-muted small">暂无标签</div>';
+    } else {
+        container.innerHTML = labels.map(label => 
+            `<span class="task-label me-1 mb-1" style="background-color: ${label.color};">
+                ${label.name}
+            </span>`
+        ).join('');
+    }
+}
+
+function showMessage(message, type = 'info') {
+    const alertClass = type === 'success' ? 'alert-success' : 
+                      type === 'error' ? 'alert-danger' : 'alert-info';
+    
+    const messageEl = document.createElement('div');
+    messageEl.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    messageEl.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    messageEl.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
+    
+    document.body.appendChild(messageEl);
+    
+    setTimeout(() => {
+        if (messageEl.parentNode) {
+            messageEl.parentNode.removeChild(messageEl);
+        }
+    }, 3000);
 }
 </script>
 {% endblock %}

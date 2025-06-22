@@ -22,6 +22,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
+from django.db.models import Q
+from django.contrib.auth.decorators import login_required
 
 from .models import User, UserProfile
 from .forms import (
@@ -394,3 +396,39 @@ def deactivate_account(request):
         return redirect('users:login')
     
     return redirect('users:settings')
+
+
+@login_required
+def user_list_api(request):
+    """用户列表API（用于批量操作等）"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': '未授权'}, status=401)
+    
+    # 只返回活跃用户
+    users = User.objects.filter(is_active=True).select_related().order_by('username')
+    
+    # 如果有搜索参数
+    q = request.GET.get('q', '').strip()
+    if q:
+        users = users.filter(
+            Q(username__icontains=q) |
+            Q(nickname__icontains=q) |
+            Q(email__icontains=q)
+        )
+    
+    # 限制返回数量
+    limit = min(int(request.GET.get('limit', 50)), 100)
+    users = users[:limit]
+    
+    user_list = []
+    for user in users:
+        user_list.append({
+            'id': user.id,
+            'username': user.username,
+            'nickname': user.nickname or '',
+            'email': user.email,
+            'display_name': user.get_display_name(),
+            'avatar_url': user.get_avatar_url(),
+        })
+    
+    return JsonResponse(user_list, safe=False)

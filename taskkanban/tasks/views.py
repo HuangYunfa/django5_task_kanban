@@ -691,3 +691,71 @@ class TaskSortView(LoginRequiredMixin, View):
             return True
             
         return False
+
+
+class TaskLabelUpdateView(LoginRequiredMixin, TaskAccessMixin, View):
+    """任务标签更新API"""
+    
+    def post(self, request, pk):
+        task = get_object_or_404(Task, pk=pk)
+        
+        if not self.has_task_edit_access(task, request.user):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        try:
+            data = json.loads(request.body)
+            action = data.get('action')  # 'add' or 'remove'
+            label_id = data.get('label_id')
+            
+            if not label_id:
+                return JsonResponse({'error': 'Label ID is required'}, status=400)
+            
+            # 验证标签属于同一看板
+            label = get_object_or_404(BoardLabel, id=label_id, board=task.board)
+            
+            if action == 'add':
+                task.labels.add(label)
+                message = f'Added label {label.name}'
+            elif action == 'remove':
+                task.labels.remove(label)
+                message = f'Removed label {label.name}'
+            else:
+                return JsonResponse({'error': 'Invalid action'}, status=400)
+            
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'labels': [
+                    {'id': l.id, 'name': l.name, 'color': l.color}
+                    for l in task.labels.all()
+                ]
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    def has_task_edit_access(self, task, user):
+        """检查用户是否有任务编辑权限"""
+        # 任务创建者
+        if task.creator == user:
+            return True
+        
+        # 看板创建者
+        board = task.board
+        if board.owner == user:
+            return True
+            
+        # 团队管理员
+        if board.team:
+            team_membership = board.team.memberships.filter(user=user, role__in=['admin', 'owner'], status='active').first()
+            if team_membership:
+                return True
+        
+        # 看板管理员
+        board_membership = board.members.filter(user=user, role='admin', is_active=True).first()
+        if board_membership:
+            return True
+            
+        return False

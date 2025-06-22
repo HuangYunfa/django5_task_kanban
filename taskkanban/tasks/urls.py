@@ -23,7 +23,7 @@ urlpatterns = [
       # API路由
     path('<int:pk>/comments/', views.TaskCommentCreateView.as_view(), name='comment_create'),
     path('<int:pk>/move/', views.TaskMoveView.as_view(), name='move'),
-    
+    path('<int:pk>/labels/', views.TaskLabelUpdateView.as_view(), name='label_update'),
     # 批量操作和排序API
     path('batch-operation/', views.TaskBatchOperationView.as_view(), name='batch_operation'),
     path('sort/', views.TaskSortView.as_view(), name='sort'),

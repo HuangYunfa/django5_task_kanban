@@ -38,6 +38,7 @@ urlpatterns = [
     
     # Ajax API
     path('ajax/search/', views.ajax_user_search, name='ajax_search'),
+    path('api/list/', views.user_list_api, name='user_list_api'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('account/deactivate/', views.deactivate_account, name='deactivate_account'),
 ]

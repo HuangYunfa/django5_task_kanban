@@ -4,7 +4,7 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
-from .models import Board, BoardList, BoardMember
+from .models import Board, BoardList, BoardMember, BoardLabel
 
 User = get_user_model()
 
@@ -266,8 +266,7 @@ class BoardSearchForm(forms.Form):
     
     visibility = forms.ChoiceField(
         label=_('可见性'),
-        choices=[('', _('全部'))] + Board.VISIBILITY_CHOICES,
-        required=False,
+        choices=[('', _('全部'))] + Board.VISIBILITY_CHOICES,        required=False,
         widget=forms.Select(attrs={
             'class': 'form-select'
         })
@@ -280,3 +279,40 @@ class BoardSearchForm(forms.Form):
             'class': 'form-check-input'
         })
     )
+
+
+class BoardLabelForm(forms.ModelForm):
+    """
+    看板标签表单
+    """
+    class Meta:
+        model = BoardLabel
+        fields = ['name', 'color']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': _('标签名称'),
+                'maxlength': 50
+            }),
+            'color': forms.TextInput(attrs={
+                'type': 'color',
+                'class': 'form-control form-control-color',
+                'title': _('选择标签颜色')
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.board = kwargs.pop('board', None)
+        super().__init__(*args, **kwargs)
+        
+        # 为字段设置标签
+        self.fields['name'].label = _('标签名称')
+        self.fields['color'].label = _('标签颜色')
+    
+    def save(self, commit=True):
+        label = super().save(commit=False)
+        if self.board:
+            label.board = self.board
+        if commit:
+            label.save()
+        return label
