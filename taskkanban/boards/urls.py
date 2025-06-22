@@ -30,8 +30,10 @@ urlpatterns = [
     path('api/lists/', views.BoardListsAPIView.as_view(), name='board_lists'),
     path('<slug:slug>/lists/create/', views.BoardListCreateAPIView.as_view(), name='list_create_api'),
     path('<slug:slug>/members/invite/', views.BoardMemberInviteAPIView.as_view(), name='member_invite_api'),
-    
-    # 标签管理API路由
+      # 标签管理API路由
     path('<slug:slug>/labels/', views.BoardLabelListCreateView.as_view(), name='label_list_create_api'),
     path('<slug:slug>/labels/<int:label_pk>/', views.BoardLabelUpdateView.as_view(), name='label_update_api'),
+    
+    # 看板数据API - 支持多视图切换
+    path('<slug:slug>/data/', views.BoardDataAPIView.as_view(), name='board_data_api'),
 ]

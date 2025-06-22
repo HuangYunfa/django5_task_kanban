@@ -13,6 +13,9 @@ from django.db.models import Q, Count, Prefetch, Max
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+import json
 
 from .models import Board, BoardList, BoardMember, BoardLabel
 from tasks.models import Task
@@ -710,3 +713,104 @@ class BoardListsAPIView(LoginRequiredMixin, View):
             return True
         
         return False
+
+
+class BoardDataAPIView(LoginRequiredMixin, BoardAccessMixin, View):
+    """
+    看板数据API视图 - 支持多视图切换
+    返回看板的所有任务和列表数据
+    """
+    
+    @method_decorator(cache_page(60 * 5))  # 缓存5分钟
+    def get(self, request, slug):
+        board = get_object_or_404(Board, slug=slug)
+        
+        # 获取看板所有列表
+        lists = list(board.lists.all().order_by('position').values(
+            'id', 'name', 'position'
+        ))
+          # 获取所有任务，包含相关数据
+        tasks_queryset = Task.objects.filter(
+            board=board
+        ).select_related(
+            'creator', 'board_list'
+        ).prefetch_related(
+            'assignees', 'labels', 'comments'
+        ).order_by('board_list__position', 'position')
+        
+        tasks = []
+        for task in tasks_queryset:
+            task_data = {
+                'id': task.id,
+                'title': task.title,
+                'description': task.description,
+                'status': task.status,
+                'priority': task.get_priority_display(),
+                'priority_value': task.priority,
+                'due_date': task.due_date.isoformat() if task.due_date else None,
+                'created_at': task.created_at.isoformat(),
+                'updated_at': task.updated_at.isoformat(),                'position': task.position,
+                'list_id': task.board_list.id if task.board_list else None,
+                'list_name': task.board_list.name if task.board_list else None,
+                'creator': {
+                    'id': task.creator.id,
+                    'name': task.creator.get_display_name(),
+                    'avatar': task.creator.avatar.url if task.creator.avatar else None
+                },
+                'assignees': [
+                    {
+                        'id': assignee.id,
+                        'name': assignee.get_display_name(),
+                        'avatar': assignee.avatar.url if assignee.avatar else None
+                    }
+                    for assignee in task.assignees.all()
+                ],
+                'labels': [
+                    {
+                        'id': label.id,
+                        'name': label.name,
+                        'color': label.color
+                    }
+                    for label in task.labels.all()
+                ],
+                'comments_count': task.comments.count(),
+                'url': reverse('tasks:detail', kwargs={'pk': task.id})
+            }
+            tasks.append(task_data)
+        
+        # 计算统计数据
+        total_tasks = len(tasks)
+        completed_tasks = len([t for t in tasks if t['status'] == 'done'])
+        in_progress_tasks = len([t for t in tasks if t['status'] == 'in_progress'])
+        todo_tasks = len([t for t in tasks if t['status'] == 'todo'])
+        
+        data = {
+            'board': {
+                'id': board.id,
+                'name': board.name,
+                'slug': board.slug,
+                'description': board.description,
+                'background_color': board.background_color,
+                'created_at': board.created_at.isoformat()
+            },
+            'lists': lists,
+            'tasks': tasks,
+            'stats': {
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks,
+                'in_progress_tasks': in_progress_tasks,
+                'todo_tasks': todo_tasks,
+                'completion_rate': round((completed_tasks / total_tasks * 100) if total_tasks > 0 else 0, 1)
+            },
+            'members': [
+                {
+                    'id': member.user.id,
+                    'name': member.user.get_display_name(),
+                    'avatar': member.user.avatar.url if member.user.avatar else None,
+                    'role': member.role
+                }
+                for member in board.members.select_related('user').all()
+            ]
+        }
+        
+        return JsonResponse(data)

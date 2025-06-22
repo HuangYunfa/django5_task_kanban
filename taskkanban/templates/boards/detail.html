@@ -234,32 +234,17 @@
                         <div class="stat-label">{% trans "已完成" %}</div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6 text-end">
-                <div class="btn-group me-2">
-                    <button class="btn btn-outline-primary btn-sm active">
-                        <i class="fas fa-th-large me-1"></i>
-                        {% trans "看板视图" %}
-                    </button>
-                    <button class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-list me-1"></i>
-                        {% trans "列表视图" %}
-                    </button>
-                    <button class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-calendar me-1"></i>
-                        {% trans "日历视图" %}
-                    </button>
-                </div>
+            </div>            <div class="col-md-6 text-end">
                 <button class="btn btn-primary btn-sm" onclick="addList()">
                     <i class="fas fa-plus me-1"></i>
                     {% trans "添加列表" %}
                 </button>
             </div>
         </div>
-    </div>
-
-    <!-- 看板列表 -->
-    <div class="board-lists" id="board-lists">
+    </div>    <!-- 看板内容容器 - 多视图切换目标容器 -->
+    <div id="board-container">
+        <!-- 看板列表 -->
+        <div class="board-lists board-content" id="board-lists">
         {% for list in board.lists.all %}
         <div class="board-list" data-list-id="{{ list.id }}">
             <div class="board-list-header">
@@ -369,10 +354,10 @@
         <div class="add-list-btn" onclick="addList()">
             <i class="fas fa-plus fa-2x mb-2"></i>
             <div>{% trans "添加新列表" %}</div>
-        </div>
-        {% endif %}
+        </div>        {% endif %}
     </div>
 </div>
+<!-- 看板容器结束 -->
 
 <!-- 添加列表模态框 -->
 <div class="modal fade" id="addListModal" tabindex="-1">
@@ -450,6 +435,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- 引入多视图切换组件 -->
+<script src="{% static 'js/board-multi-view.js' %}"></script>
+
 <script>
 // 添加列表
 function addList() {
@@ -621,10 +609,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
                 transform: translateY(-1px);
                 transition: all 0.2s ease;
-            }
-        `;
+            }        `;
         document.head.appendChild(style);
     }
+    
+    // 初始化多视图管理器
+    console.log('🚀 初始化看板多视图管理器...');
+    const boardViewManager = new BoardViewManager('{{ board.slug }}', 'board-container');
+    
+    // 监听视图切换事件
+    document.getElementById('board-container').addEventListener('viewChanged', (e) => {
+        console.log('📋 视图已切换到:', e.detail.view);
+        // 可以在这里添加其他需要响应视图切换的逻辑
+    });
 });
 </script>
 {% endblock %}
