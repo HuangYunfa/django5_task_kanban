@@ -123,6 +123,42 @@
 .productivity-high { background: linear-gradient(90deg, #28a745 0%, #20c997 100%); }
 .productivity-medium { background: linear-gradient(90deg, #ffc107 0%, #fd7e14 100%); }
 .productivity-low { background: linear-gradient(90deg, #dc3545 0%, #e83e8c 100%); }
+
+/* 表格容器样式 - 防止无限增高 */
+.table-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 10;
+    border-top: none;
+}
+
+/* 防止表格行过高 */
+.table td, .table th {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* 成员头像在表格中的样式调整 */
+.table .member-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
 </style>
 {% endblock %}
 
@@ -245,13 +281,12 @@
             <!-- 成员列表 -->
             <div class="team-members">
                 <h6 class="mb-2">{% trans "团队成员" %}</h6>
-                {% for member in team.members %}
-                <div class="team-member">
+                {% for member in team.members %}                <div class="team-member">
                     <div class="member-avatar">
-                        {{ member.display_name|first|upper }}
+                        {{ member.display_name|default:"U"|first|upper }}
                     </div>
                     <div class="member-info">
-                        <div class="member-name">{{ member.display_name }}</div>
+                        <div class="member-name">{{ member.display_name|default:"Unknown User" }}</div>
                         <div class="member-stats">
                             {% trans "任务:" %} {{ member.total_tasks }} | 
                             {% trans "完成:" %} {{ member.completed_tasks }}
@@ -290,8 +325,7 @@
             <div class="chart-title">
                 <i class="fas fa-user-chart me-2"></i>{% trans "成员工作负载详情" %}
             </div>
-            
-            <div class="table-responsive">
+              <div class="table-container">
                 <table class="table table-striped">
                     <thead>
                         <tr>
@@ -304,15 +338,14 @@
                             <th>{% trans "生产力评分" %}</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for user in workload_stats.user_workloads %}
+                    <tbody>{% for user in workload_stats.user_workloads %}
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="member-avatar me-2" style="width: 30px; height: 30px; font-size: 0.8rem;">
-                                        {{ user.display_name|first|upper }}
+                                        {{ user.display_name|default:"U"|first|upper }}
                                     </div>
-                                    {{ user.display_name }}
+                                    {{ user.display_name|default:"Unknown User" }}
                                 </div>
                             </td>
                             <td><span class="badge bg-primary">{{ user.total_tasks }}</span></td>
@@ -394,9 +427,9 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(ctx1, {
             type: 'bar',
             data: teamComparisonData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
+            options: {                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 plugins: {
                     legend: {
                         display: false

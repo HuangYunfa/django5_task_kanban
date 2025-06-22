@@ -5,6 +5,7 @@ Reports应用表单
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from datetime import datetime, timedelta
 from .models import Report
 
@@ -98,18 +99,15 @@ class ReportFilterForm(forms.Form):
                 memberships__user=user,
                 memberships__status='active'
             ).distinct()
-            self.fields['team'].queryset = user_teams
-            
-            # 获取用户相关的看板
+            self.fields['team'].queryset = user_teams            # 获取用户相关的看板
             from boards.models import Board
             user_boards = Board.objects.filter(
-                models.Q(created_by=user) |
-                models.Q(members=user)
+                Q(owner=user) |
+                Q(members__user=user, members__is_active=True)
             ).distinct()
             self.fields['board'].queryset = user_boards
             
             # 获取团队相关的用户
-            from django.db import models
             team_users = User.objects.filter(
                 team_memberships__team__in=user_teams,
                 team_memberships__status='active'
@@ -169,7 +167,7 @@ class ReportCreateForm(forms.ModelForm):
                 'class': 'form-select'
             }),
         }
-
+    
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
@@ -178,7 +176,6 @@ class ReportCreateForm(forms.ModelForm):
             # 设置用户相关的团队和看板选项
             from teams.models import Team
             from boards.models import Board
-            from django.db import models
             
             user_teams = Team.objects.filter(
                 memberships__user=user,
@@ -188,8 +185,8 @@ class ReportCreateForm(forms.ModelForm):
             self.fields['team'].empty_label = _('选择团队（可选）')
             
             user_boards = Board.objects.filter(
-                models.Q(created_by=user) |
-                models.Q(members=user)
+                Q(owner=user) |
+                Q(members__user=user, members__is_active=True)
             ).distinct()
             self.fields['board'].queryset = user_boards
             self.fields['board'].empty_label = _('选择看板（可选）')

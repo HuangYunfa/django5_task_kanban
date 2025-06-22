@@ -121,8 +121,7 @@ class ReportDataService:
             total_team_tasks = sum(w['total_tasks'] for w in user_workloads)
             avg_tasks_per_user = total_team_tasks / total_users
         else:
-            avg_tasks_per_user = 0
-        
+            avg_tasks_per_user = 0        
         return {
             'user_workloads': list(user_workloads),
             'total_users': total_users,
@@ -159,8 +158,38 @@ class ReportDataService:
             total_tasks = Task.objects.filter(**team_filters).count()
             completed_tasks = Task.objects.filter(**team_filters, status='done').count()
             
-            # 团队成员数量
-            member_count = team.memberships.filter(status='active').count()
+            # 团队成员数量和详情
+            active_memberships = team.memberships.filter(status='active').select_related('user')
+            member_count = active_memberships.count()
+            
+            # 获取成员详细统计
+            members_data = []
+            for membership in active_memberships:
+                user = membership.user
+                # 用户任务统计
+                user_filters = {**team_filters, 'assignees': user}
+                user_total = Task.objects.filter(**user_filters).count()
+                user_completed = Task.objects.filter(**user_filters, status='done').count()
+                user_in_progress = Task.objects.filter(**user_filters, status='in_progress').count()
+                
+                # 计算生产力评分
+                productivity_score = (user_completed / user_total * 100) if user_total > 0 else 0
+                  # 确保 display_name 不为空
+                display_name = (
+                    getattr(user, 'nickname', None) or 
+                    user.get_full_name() or 
+                    user.username or 
+                    'Unknown User'
+                ).strip()
+                
+                members_data.append({
+                    'username': user.username or 'unknown',
+                    'display_name': display_name,
+                    'total_tasks': user_total,
+                    'completed_tasks': user_completed,
+                    'in_progress_tasks': user_in_progress,
+                    'productivity_score': round(productivity_score, 1),
+                })
             
             # 团队效率指标
             completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
@@ -173,6 +202,7 @@ class ReportDataService:
                 'completed_tasks': completed_tasks,
                 'completion_rate': round(completion_rate, 2),
                 'tasks_per_member': round(tasks_per_member, 2),
+                'members': members_data,  # 添加成员详情
             })
         
         # 按完成率排序

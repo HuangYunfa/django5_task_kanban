@@ -473,34 +473,45 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 防止重复创建图表
+    let projectChart = null;
+    
     // 项目进度对比图
     const projectProgressData = {{ chart_data.project_progress|safe }};
     if (projectProgressData) {
-        const ctx = document.getElementById('projectProgressChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: projectProgressData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            callback: function(value) {
-                                return value + '%';
+        const ctx = document.getElementById('projectProgressChart');
+        if (ctx) {
+            // 销毁之前的图表实例
+            if (projectChart) {
+                projectChart.destroy();
+            }
+            
+            projectChart = new Chart(ctx, {
+                type: 'bar',
+                data: projectProgressData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 });
 </script>

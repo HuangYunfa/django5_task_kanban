@@ -52,6 +52,12 @@
     padding: 1.5rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.chart-container canvas {
+    max-height: 400px !important;
+    height: 300px !important;
 }
 
 .chart-title {
@@ -271,72 +277,99 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 防止图表重复初始化
+    const chartInstances = {};
+    
     // 任务完成趋势图
     const completionTrendData = {{ chart_data.task_completion_trend|safe }};
     if (completionTrendData) {
-        const ctx1 = document.getElementById('completionTrendChart').getContext('2d');
-        new Chart(ctx1, {
-            type: 'line',
-            data: completionTrendData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
+        const ctx1 = document.getElementById('completionTrendChart');
+        if (ctx1) {
+            // 销毁之前的图表实例
+            if (chartInstances.completionTrend) {
+                chartInstances.completionTrend.destroy();
+            }
+            
+            chartInstances.completionTrend = new Chart(ctx1, {
+                type: 'line',
+                data: completionTrendData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
     
     // 任务状态分布图
     const statusDistributionData = {{ chart_data.status_distribution|safe }};
     if (statusDistributionData) {
-        const ctx2 = document.getElementById('statusDistributionChart').getContext('2d');
-        new Chart(ctx2, {
-            type: 'doughnut',
-            data: statusDistributionData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+        const ctx2 = document.getElementById('statusDistributionChart');
+        if (ctx2) {
+            // 销毁之前的图表实例
+            if (chartInstances.statusDistribution) {
+                chartInstances.statusDistribution.destroy();
+            }
+            
+            chartInstances.statusDistribution = new Chart(ctx2, {
+                type: 'doughnut',
+                data: statusDistributionData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 1,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
     
     // 用户工作量图
     const userWorkloadData = {{ chart_data.user_workload|safe }};
     if (userWorkloadData) {
-        const ctx3 = document.getElementById('userWorkloadChart').getContext('2d');
-        new Chart(ctx3, {
-            type: 'bar',
-            data: userWorkloadData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
+        const ctx3 = document.getElementById('userWorkloadChart');
+        if (ctx3) {
+            // 销毁之前的图表实例
+            if (chartInstances.userWorkload) {
+                chartInstances.userWorkload.destroy();
+            }
+            
+            chartInstances.userWorkload = new Chart(ctx3, {
+                type: 'bar',
+                data: userWorkloadData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 });
 </script>
