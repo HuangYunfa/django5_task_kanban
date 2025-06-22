@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}工作台 - 企业级待办事项任务看板{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+        <i class="fas fa-tachometer-alt text-primary me-2"></i>
+        工作台
+    </h2>
+    <small class="text-muted">欢迎回来，{{ user.get_full_name|default:user.username }}！</small>
+</div>
+
+<!-- 快速统计 -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 bg-primary bg-gradient text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">{{ total_users }}</h5>
+                        <p class="card-text mb-0 opacity-75">团队成员</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 bg-success bg-gradient text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">{{ total_boards }}</h5>
+                        <p class="card-text mb-0 opacity-75">活跃看板</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-columns fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 bg-warning bg-gradient text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">{{ total_tasks }}</h5>
+                        <p class="card-text mb-0 opacity-75">待处理任务</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-tasks fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 bg-info bg-gradient text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">{{ total_teams }}</h5>
+                        <p class="card-text mb-0 opacity-75">我的团队</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-users-cog fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 主要内容区域 -->
+<div class="row">
+    <!-- 左侧内容 -->
+    <div class="col-lg-8">
+        <!-- 快速操作 -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt text-warning me-2"></i>
+                    快速操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <a href="{% url 'boards:create' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus me-2"></i>
+                            创建新看板
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'tasks:create' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-plus me-2"></i>
+                            添加新任务
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'teams:create' %}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-plus me-2"></i>
+                            创建团队
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'reports:index' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            查看报表
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最近活动 -->
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history text-info me-2"></i>
+                    最近活动
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-clock fa-2x mb-3 opacity-50"></i>
+                    <p class="mb-0">暂无最近活动</p>
+                    <small>开始创建看板和任务来查看活动</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧边栏 -->
+    <div class="col-lg-4">
+        <!-- 我的任务 -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user-check text-success me-2"></i>
+                    我的任务
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-clipboard-list fa-2x mb-3 opacity-50"></i>
+                    <p class="mb-0">暂无分配任务</p>
+                    <small>任务分配后将在这里显示</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统公告 -->
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bullhorn text-primary me-2"></i>
+                    系统公告
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info border-0 mb-3">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-2">
+                            <h6 class="alert-heading mb-1">欢迎使用任务看板系统</h6>
+                            <p class="mb-0 small">
+                                系统已成功部署，您可以开始创建看板和管理任务了。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-success border-0 mb-0">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-2">
+                            <h6 class="alert-heading mb-1">系统状态良好</h6>
+                            <p class="mb-0 small">
+                                所有服务运行正常，数据库连接稳定。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

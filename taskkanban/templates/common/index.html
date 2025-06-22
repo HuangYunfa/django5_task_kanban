@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}欢迎使用企业级待办事项任务看板{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- 主要内容区域 -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 text-primary mb-4">
+                <i class="fas fa-tasks me-3"></i>
+                企业级待办事项任务看板
+            </h1>
+            <p class="lead text-muted">
+                高效协作，精准管理，让团队工作更加井然有序
+            </p>
+        </div>
+
+        <!-- 功能特性 -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-users text-primary fs-4"></i>
+                        </div>
+                        <h5 class="card-title">团队协作</h5>
+                        <p class="card-text text-muted">实时协作，@提及，活动流，让团队沟通更加高效</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-chart-line text-success fs-4"></i>
+                        </div>
+                        <h5 class="card-title">数据分析</h5>
+                        <p class="card-text text-muted">智能报表，绩效分析，数据驱动决策</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-columns text-warning fs-4"></i>
+                        </div>
+                        <h5 class="card-title">看板管理</h5>
+                        <p class="card-text text-muted">直观的看板视图，拖拽操作，任务状态一目了然</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-mobile-alt text-info fs-4"></i>
+                        </div>
+                        <h5 class="card-title">移动友好</h5>
+                        <p class="card-text text-muted">响应式设计，随时随地管理任务</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 行动按钮 -->
+        <div class="text-center">
+            {% if user.is_authenticated %}
+                <a href="{% url 'common:dashboard' %}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    进入工作台
+                </a>
+            {% else %}
+                <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-user-plus me-2"></i>
+                    立即注册
+                </a>
+                <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    登录
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 系统状态 -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card border-0 bg-light">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="border-end">
+                            <h4 class="mb-1 text-primary">Django 5.2</h4>
+                            <small class="text-muted">框架版本</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border-end">
+                            <h4 class="mb-1 text-success">
+                                <i class="fas fa-check-circle"></i>
+                            </h4>
+                            <small class="text-muted">系统状态</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="border-end">
+                            <h4 class="mb-1 text-info">v1.0</h4>
+                            <small class="text-muted">当前版本</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <h4 class="mb-1 text-warning">24/7</h4>
+                        <small class="text-muted">技术支持</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
