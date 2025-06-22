@@ -48,11 +48,11 @@ class Task(models.Model):
         related_name='tasks',
         verbose_name=_('所属列表')
     )
-    
-    # 任务分配
+      # 任务分配
     assignees = models.ManyToManyField(
         User,
         through='TaskAssignment',
+        through_fields=('task', 'user'),
         related_name='assigned_tasks',
         verbose_name=_('分配给'),
         blank=True
