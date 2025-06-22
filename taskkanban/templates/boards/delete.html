@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "删除看板" %} - {{ board.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-confirmation {
+        max-width: 600px;
+        margin: 3rem auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        overflow: hidden;
+    }
+    
+    .delete-header {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .delete-content {
+        padding: 2rem;
+    }
+    
+    .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .stat-card {
+        text-align: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #dc3545;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .confirmation-input {
+        background-color: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .board-preview {
+        background: linear-gradient(135deg, {{ board.background_color|default:"#4a90e2" }}, #357abd);
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="delete-confirmation">
+        <div class="delete-header">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <h2 class="mb-0">{% trans "删除看板" %}</h2>
+            <p class="mb-0 opacity-75">{% trans "此操作无法撤销" %}</p>
+        </div>
+        
+        <div class="delete-content">
+            <div class="board-preview">
+                <h5 class="mb-1">
+                    <i class="fas fa-columns me-2"></i>
+                    {{ board.name }}
+                </h5>
+                <p class="mb-0 opacity-75">
+                    {% if board.description %}
+                        {{ board.description|truncatewords:20 }}
+                    {% else %}
+                        {% trans "暂无描述" %}
+                    {% endif %}
+                </p>
+                <small class="opacity-75">
+                    {% trans "创建于" %} {{ board.created_at|date:"Y年m月d日" }}
+                </small>
+            </div>
+            
+            <div class="warning-box">
+                <h6 class="text-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {% trans "删除警告" %}
+                </h6>
+                <p class="mb-0">
+                    {% trans "删除此看板将永久删除以下内容，且无法恢复：" %}
+                </p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ board.lists.count }}</div>
+                    <div class="stat-label">{% trans "列表" %}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ total_tasks }}</div>
+                    <div class="stat-label">{% trans "任务" %}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ board.members.count }}</div>
+                    <div class="stat-label">{% trans "成员" %}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ total_comments }}</div>
+                    <div class="stat-label">{% trans "评论" %}</div>
+                </div>
+            </div>
+            
+            <div class="alert alert-danger">
+                <h6 class="alert-heading">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% trans "将被删除的内容包括：" %}
+                </h6>
+                <ul class="mb-0">
+                    <li>{% trans "所有列表和任务" %}</li>
+                    <li>{% trans "所有任务评论和历史记录" %}</li>
+                    <li>{% trans "所有文件附件" %}</li>
+                    <li>{% trans "看板成员关系" %}</li>
+                    <li>{% trans "所有活动日志" %}</li>
+                </ul>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="confirmation-input">
+                    <label for="confirmationInput" class="form-label">
+                        <strong>{% trans "确认删除" %}</strong>
+                    </label>
+                    <p class="text-muted mb-2">
+                        {% trans "请输入看板名称" %} <code>{{ board.name }}</code> {% trans "来确认删除：" %}
+                    </p>
+                    <input type="text" 
+                           id="confirmationInput" 
+                           class="form-control" 
+                           placeholder="{{ board.name }}"
+                           autocomplete="off">
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'boards:detail' board.slug %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        {% trans "取消" %}
+                    </a>
+                    <button type="submit" 
+                            id="deleteButton" 
+                            class="btn btn-danger" 
+                            disabled>
+                        <i class="fas fa-trash me-1"></i>
+                        {% trans "永久删除看板" %}
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-3 text-center">
+                <small class="text-muted">
+                    {% trans "如果您只是想暂时停用看板，可以考虑" %}
+                    <a href="{% url 'boards:update' board.slug %}">{% trans "关闭看板" %}</a>
+                    {% trans "而不是删除它。" %}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmationInput = document.getElementById('confirmationInput');
+    const deleteButton = document.getElementById('deleteButton');
+    const boardName = '{{ board.name|escapejs }}';
+    
+    confirmationInput.addEventListener('input', function() {
+        if (this.value === boardName) {
+            deleteButton.disabled = false;
+            deleteButton.classList.remove('btn-danger');
+            deleteButton.classList.add('btn-outline-danger');
+        } else {
+            deleteButton.disabled = true;
+            deleteButton.classList.remove('btn-outline-danger');
+            deleteButton.classList.add('btn-danger');
+        }
+    });
+    
+    // 防止意外提交
+    deleteButton.addEventListener('click', function(e) {
+        if (confirmationInput.value !== boardName) {
+            e.preventDefault();
+            alert('{% trans "请正确输入看板名称以确认删除" %}');
+            return false;
+        }
+        
+        // 最后确认
+        const confirmed = confirm('{% trans "您确定要永久删除此看板吗？此操作无法撤销！" %}');
+        if (!confirmed) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

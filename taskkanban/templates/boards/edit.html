@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "编辑看板" %} - {{ board.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/boards.css' %}">
+<style>
+    .form-section {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #495057;
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 0.5rem;
+    }
+    
+    .color-picker {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .color-option {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .color-option:hover,
+    .color-option.selected {
+        border-color: #007bff;
+        transform: scale(1.1);
+    }
+    
+    .template-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .template-card {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .template-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.1);
+    }
+    
+    .template-card.selected {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
+    
+    .danger-zone {
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        padding: 1.5rem;
+        background-color: #fff5f5;
+    }
+    
+    .danger-zone h5 {
+        color: #dc3545;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'boards:list' %}">{% trans "看板" %}</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'boards:detail' board.slug %}">{{ board.name }}</a>
+                    </li>
+                    <li class="breadcrumb-item active">{% trans "编辑" %}</li>
+                </ol>
+            </nav>
+            
+            <h1 class="mb-4">
+                <i class="fas fa-edit me-2"></i>
+                {% trans "编辑看板" %}
+            </h1>
+        </div>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- 基本信息 -->
+        <div class="form-section">
+            <h3 class="section-title">
+                <i class="fas fa-info-circle me-2"></i>
+                {% trans "基本信息" %}
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                            {{ form.name.label }}
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.name.errors|first }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.slug.id_for_label }}" class="form-label">
+                            {{ form.slug.label }}
+                        </label>
+                        {{ form.slug }}
+                        {% if form.slug.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.slug.errors|first }}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">
+                            {% trans "URL中显示的唯一标识符，只能包含字母、数字和连字符" %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">
+                    {{ form.description.label }}
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.description.errors|first }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 外观设置 -->
+        <div class="form-section">
+            <h3 class="section-title">
+                <i class="fas fa-palette me-2"></i>
+                {% trans "外观设置" %}
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "背景颜色" %}</label>
+                        {{ form.background_color }}
+                        <div class="color-picker mt-2">
+                            <div class="color-option" style="background-color: #4a90e2;" 
+                                 onclick="selectColor('#4a90e2')"></div>
+                            <div class="color-option" style="background-color: #7b68ee;" 
+                                 onclick="selectColor('#7b68ee')"></div>
+                            <div class="color-option" style="background-color: #ff6b6b;" 
+                                 onclick="selectColor('#ff6b6b')"></div>
+                            <div class="color-option" style="background-color: #4ecdc4;" 
+                                 onclick="selectColor('#4ecdc4')"></div>
+                            <div class="color-option" style="background-color: #45b7d1;" 
+                                 onclick="selectColor('#45b7d1')"></div>
+                            <div class="color-option" style="background-color: #96ceb4;" 
+                                 onclick="selectColor('#96ceb4')"></div>
+                            <div class="color-option" style="background-color: #feca57;" 
+                                 onclick="selectColor('#feca57')"></div>
+                            <div class="color-option" style="background-color: #ff9ff3;" 
+                                 onclick="selectColor('#ff9ff3')"></div>
+                        </div>
+                        {% if form.background_color.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.background_color.errors|first }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.background_image.id_for_label }}" class="form-label">
+                            {{ form.background_image.label }}
+                        </label>
+                        {{ form.background_image }}
+                        {% if form.background_image.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.background_image.errors|first }}
+                        </div>
+                        {% endif %}
+                        {% if board.background_image %}
+                        <div class="form-text">
+                            {% trans "当前图片:" %} 
+                            <a href="{{ board.background_image.url }}" target="_blank">
+                                {% trans "查看" %}
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 权限设置 -->
+        <div class="form-section">
+            <h3 class="section-title">
+                <i class="fas fa-shield-alt me-2"></i>
+                {% trans "权限设置" %}
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.visibility.id_for_label }}" class="form-label">
+                            {{ form.visibility.label }}
+                        </label>
+                        {{ form.visibility }}
+                        {% if form.visibility.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.visibility.errors|first }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.team.id_for_label }}" class="form-label">
+                            {{ form.team.label }}
+                        </label>
+                        {{ form.team }}
+                        {% if form.team.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.team.errors|first }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 高级设置 -->
+        <div class="form-section">
+            <h3 class="section-title">
+                <i class="fas fa-cogs me-2"></i>
+                {% trans "高级设置" %}
+            </h3>
+            
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-check mb-3">
+                        {{ form.is_closed }}
+                        <label class="form-check-label" for="{{ form.is_closed.id_for_label }}">
+                            {{ form.is_closed.label }}
+                        </label>
+                        <div class="form-text text-warning">
+                            {% trans "关闭后，只有看板所有者和管理员可以查看和编辑" %}
+                        </div>
+                        {% if form.is_closed.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.is_closed.errors|first }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="form-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-1"></i>
+                        {% trans "保存更改" %}
+                    </button>
+                    <a href="{% url 'boards:detail' board.slug %}" class="btn btn-secondary btn-lg ms-2">
+                        <i class="fas fa-times me-1"></i>
+                        {% trans "取消" %}
+                    </a>
+                </div>
+                <div>
+                    <a href="{% url 'boards:copy' board.slug %}" class="btn btn-outline-info">
+                        <i class="fas fa-copy me-1"></i>
+                        {% trans "复制看板" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 危险操作区域 -->
+        {% if user == board.owner %}
+        <div class="danger-zone">
+            <h5>
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {% trans "危险操作" %}
+            </h5>
+            <p class="text-muted mb-3">
+                {% trans "以下操作是不可逆的，请谨慎操作。" %}
+            </p>
+            <a href="{% url 'boards:delete' board.slug %}" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i>
+                {% trans "删除看板" %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 颜色选择器
+function selectColor(color) {
+    document.getElementById('{{ form.background_color.id_for_label }}').value = color;
+    
+    // 更新选中状态
+    document.querySelectorAll('.color-option').forEach(el => {
+        el.classList.remove('selected');
+    });
+    event.target.classList.add('selected');
+}
+
+// 页面加载时设置当前颜色
+document.addEventListener('DOMContentLoaded', function() {
+    const currentColor = document.getElementById('{{ form.background_color.id_for_label }}').value;
+    if (currentColor) {
+        document.querySelectorAll('.color-option').forEach(el => {
+            if (el.style.backgroundColor === currentColor) {
+                el.classList.add('selected');
+            }
+        });
+    }
+});
+
+// Slug自动生成
+document.getElementById('{{ form.name.id_for_label }}').addEventListener('input', function() {
+    const name = this.value;
+    const slug = name.toLowerCase()
+        .replace(/[^\w\s-]/g, '') // 移除特殊字符
+        .replace(/\s+/g, '-')     // 空格替换为连字符
+        .replace(/-+/g, '-')      // 多个连字符合并为一个
+        .trim('-');               // 移除首尾连字符
+    
+    document.getElementById('{{ form.slug.id_for_label }}').value = slug;
+});
+</script>
+{% endblock %}

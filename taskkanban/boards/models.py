@@ -69,7 +69,6 @@ class Board(models.Model):
     # 系统字段
     created_at = models.DateTimeField(_('创建时间'), auto_now_add=True)
     updated_at = models.DateTimeField(_('更新时间'), auto_now=True)
-    
     class Meta:
         verbose_name = _('看板')
         verbose_name_plural = _('看板')
@@ -89,9 +88,17 @@ class Board(models.Model):
             base_slug = slugify(self.name)
             slug = base_slug
             counter = 1
-            while Board.objects.filter(slug=slug).exists():
+            # 排除自己（更新时）
+            queryset = Board.objects.filter(slug=slug)
+            if self.pk:
+                queryset = queryset.exclude(pk=self.pk)
+            
+            while queryset.exists():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
+                queryset = Board.objects.filter(slug=slug)
+                if self.pk:
+                    queryset = queryset.exclude(pk=self.pk)
             self.slug = slug
         super().save(*args, **kwargs)
     

@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ board.name }} - {% trans "看板详情" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/boards.css' %}">
+<style>
+    .board-header {
+        background: linear-gradient(135deg, {{ board.background_color|default:"#4a90e2" }} 0%, #357abd 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+    }
+    
+    .board-lists {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding: 1rem 0;
+        min-height: 500px;
+    }
+    
+    .board-list {
+        min-width: 280px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #e9ecef;
+        height: fit-content;
+    }
+    
+    .board-list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .task-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .task-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+    
+    .task-labels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .task-label {
+        padding: 0.125rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: white;
+    }
+    
+    .task-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    
+    .task-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+    
+    .add-list-btn {
+        min-width: 280px;
+        background: rgba(255,255,255,0.8);
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        color: #6c757d;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .add-list-btn:hover {
+        background: white;
+        border-color: #007bff;
+        color: #007bff;
+    }
+    
+    .board-toolbar {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .board-stats {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #007bff;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="board-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-1">
+                    <i class="fas fa-columns me-2"></i>
+                    {{ board.name }}
+                </h1>
+                <p class="mb-0 opacity-75">
+                    {% if board.description %}
+                        {{ board.description }}
+                    {% else %}
+                        {% trans "暂无描述" %}
+                    {% endif %}
+                </p>
+                <div class="mt-2">
+                    <span class="badge bg-light text-dark me-2">
+                        <i class="fas fa-user me-1"></i>
+                        {{ board.owner.get_display_name }}
+                    </span>
+                    {% if board.team %}
+                    <span class="badge bg-light text-dark me-2">
+                        <i class="fas fa-users me-1"></i>
+                        {{ board.team.name }}
+                    </span>
+                    {% endif %}
+                    <span class="badge bg-light text-dark me-2">
+                        <i class="fas fa-{{ board.get_visibility_icon }} me-1"></i>
+                        {{ board.get_visibility_display }}
+                    </span>
+                    <span class="badge bg-light text-dark">
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ board.created_at|date:"Y-m-d" }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                {% if user == board.owner or user in board.get_admin_members %}
+                <div class="btn-group">
+                    <a href="{% url 'boards:update' board.slug %}" class="btn btn-light">
+                        <i class="fas fa-edit me-1"></i>
+                        {% trans "编辑" %}
+                    </a>
+                    <button type="button" class="btn btn-light dropdown-toggle dropdown-toggle-split" 
+                            data-bs-toggle="dropdown">
+                        <span class="visually-hidden">{% trans "切换下拉菜单" %}</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'boards:copy' board.slug %}">
+                                <i class="fas fa-copy me-1"></i>
+                                {% trans "复制看板" %}
+                            </a>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="inviteMember()">
+                                <i class="fas fa-user-plus me-1"></i>
+                                {% trans "邀请成员" %}
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="{% url 'boards:delete' board.slug %}">
+                                <i class="fas fa-trash me-1"></i>
+                                {% trans "删除看板" %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- 看板工具栏 -->
+    <div class="board-toolbar">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="board-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ board.lists.count }}</div>
+                        <div class="stat-label">{% trans "列表" %}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_tasks }}</div>
+                        <div class="stat-label">{% trans "任务" %}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ board.members.count }}</div>
+                        <div class="stat-label">{% trans "成员" %}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ completed_tasks }}</div>
+                        <div class="stat-label">{% trans "已完成" %}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group me-2">
+                    <button class="btn btn-outline-primary btn-sm active">
+                        <i class="fas fa-th-large me-1"></i>
+                        {% trans "看板视图" %}
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-list me-1"></i>
+                        {% trans "列表视图" %}
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-calendar me-1"></i>
+                        {% trans "日历视图" %}
+                    </button>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="addList()">
+                    <i class="fas fa-plus me-1"></i>
+                    {% trans "添加列表" %}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 看板列表 -->
+    <div class="board-lists" id="board-lists">
+        {% for list in board.lists.all %}
+        <div class="board-list" data-list-id="{{ list.id }}">
+            <div class="board-list-header">
+                <span>{{ list.name }}</span>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <button class="dropdown-item" onclick="editList({{ list.id }})">
+                                <i class="fas fa-edit me-1"></i>
+                                {% trans "编辑" %}
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="addTask({{ list.id }})">
+                                <i class="fas fa-plus me-1"></i>
+                                {% trans "添加任务" %}
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <button class="dropdown-item text-danger" onclick="deleteList({{ list.id }})">
+                                <i class="fas fa-trash me-1"></i>
+                                {% trans "删除" %}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="list-tasks" data-list-id="{{ list.id }}">
+                {% for task in list.tasks.all %}
+                <div class="task-card" data-task-id="{{ task.id }}" onclick="openTask({{ task.id }})">
+                    {% if task.labels.exists %}
+                    <div class="task-labels">
+                        {% for label in task.labels.all %}
+                        <span class="task-label" style="background-color: {{ label.color }};">
+                            {{ label.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="task-title">{{ task.title }}</div>
+                    
+                    {% if task.description %}
+                    <div class="task-description text-muted small">
+                        {{ task.description|truncatewords:10 }}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="task-meta">
+                        <div>
+                            {% if task.due_date %}
+                            <span class="text-warning">
+                                <i class="fas fa-clock me-1"></i>
+                                {{ task.due_date|date:"m-d" }}
+                            </span>
+                            {% endif %}
+                            {% if task.priority > 1 %}
+                            <span class="text-danger ms-1">
+                                <i class="fas fa-exclamation"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if task.assignees.exists %}
+                            {% for assignee in task.assignees.all|slice:":3" %}
+                            <img src="{{ assignee.avatar.url|default:'/static/images/default-avatar.png' }}" 
+                                 class="task-avatar" title="{{ assignee.get_display_name }}">
+                            {% endfor %}
+                            {% if task.assignees.count > 3 %}
+                            <span class="text-muted">+{{ task.assignees.count|add:"-3" }}</span>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-tasks fa-2x mb-2"></i>
+                    <div>{% trans "暂无任务" %}</div>
+                    <button class="btn btn-link btn-sm" onclick="addTask({{ list.id }})">
+                        {% trans "添加第一个任务" %}
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-th-large fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">{% trans "还没有列表" %}</h4>
+            <p class="text-muted">{% trans "创建第一个列表来开始管理任务吧！" %}</p>
+            <button class="btn btn-primary" onclick="addList()">
+                <i class="fas fa-plus me-1"></i>
+                {% trans "创建列表" %}
+            </button>
+        </div>
+        {% endfor %}
+        
+        <!-- 添加列表按钮 -->
+        {% if board.lists.exists %}
+        <div class="add-list-btn" onclick="addList()">
+            <i class="fas fa-plus fa-2x mb-2"></i>
+            <div>{% trans "添加新列表" %}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加列表模态框 -->
+<div class="modal fade" id="addListModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "添加新列表" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addListForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="listName" class="form-label">{% trans "列表名称" %}</label>
+                        <input type="text" class="form-control" id="listName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="listPosition" class="form-label">{% trans "位置" %}</label>
+                        <select class="form-select" id="listPosition" name="position">
+                            <option value="">{% trans "在末尾添加" %}</option>
+                            {% for list in board.lists.all %}
+                            <option value="{{ forloop.counter }}">{% trans "在" %} "{{ list.name }}" {% trans "之前" %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        {% trans "取消" %}
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        {% trans "创建列表" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 邀请成员模态框 -->
+<div class="modal fade" id="inviteMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "邀请成员" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="inviteMemberForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="memberEmail" class="form-label">{% trans "邮箱地址" %}</label>
+                        <input type="email" class="form-control" id="memberEmail" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="memberRole" class="form-label">{% trans "角色" %}</label>
+                        <select class="form-select" id="memberRole" name="role">
+                            <option value="member">{% trans "成员" %}</option>
+                            <option value="admin">{% trans "管理员" %}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        {% trans "取消" %}
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        {% trans "发送邀请" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 添加列表
+function addList() {
+    const modal = new bootstrap.Modal(document.getElementById('addListModal'));
+    modal.show();
+}
+
+// 邀请成员
+function inviteMember() {
+    const modal = new bootstrap.Modal(document.getElementById('inviteMemberModal'));
+    modal.show();
+}
+
+// 打开任务详情
+function openTask(taskId) {
+    // TODO: 实现任务详情页面
+    window.location.href = `/tasks/${taskId}/`;
+}
+
+// 添加列表表单提交
+document.getElementById('addListForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('{% url "boards:api_list_create" board.slug %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 刷新页面显示新列表
+            location.reload();
+        } else {
+            alert('创建失败: ' + JSON.stringify(data.errors));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('创建失败，请重试');
+    });
+});
+
+// 邀请成员表单提交
+document.getElementById('inviteMemberForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('{% url "boards:api_member_invite" board.slug %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('邀请已发送！');
+            bootstrap.Modal.getInstance(document.getElementById('inviteMemberModal')).hide();
+            // 可以在这里更新成员列表显示
+        } else {
+            alert('邀请失败: ' + JSON.stringify(data.errors));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('邀请失败，请重试');
+    });
+});
+
+// 拖拽排序功能 (使用SortableJS库)
+document.addEventListener('DOMContentLoaded', function() {
+    // 如果加载了SortableJS库，启用拖拽排序
+    if (typeof Sortable !== 'undefined') {
+        // 列表排序
+        new Sortable(document.getElementById('board-lists'), {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function(evt) {
+                // TODO: 发送AJAX请求更新列表位置
+                console.log('List moved from', evt.oldIndex, 'to', evt.newIndex);
+            }
+        });
+        
+        // 任务排序
+        document.querySelectorAll('.list-tasks').forEach(function(element) {
+            new Sortable(element, {
+                group: 'tasks',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onEnd: function(evt) {
+                    // TODO: 发送AJAX请求更新任务位置
+                    console.log('Task moved from list', evt.from.dataset.listId, 'to', evt.to.dataset.listId);
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

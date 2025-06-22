@@ -1,0 +1,489 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "创建看板" %} - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.create-board-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-section {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.template-option {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.template-option:hover {
+    border-color: #667eea;
+    background-color: #f8f9ff;
+}
+
+.template-option.selected {
+    border-color: #667eea;
+    background-color: #f0f2ff;
+}
+
+.template-icon {
+    font-size: 2rem;
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.template-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.template-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.color-picker-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.color-preset {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.color-preset:hover,
+.color-preset.selected {
+    border-color: #333;
+}
+
+.feature-toggle {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.feature-toggle .form-check {
+    margin-bottom: 0;
+}
+
+.feature-description {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.btn-create {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.btn-create:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.preview-board {
+    border-radius: 8px;
+    height: 120px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="create-board-container">
+        <!-- 页面标题 -->
+        <div class="text-center mb-5">
+            <h1 class="h2 mb-3">{% trans "创建新看板" %}</h1>
+            <p class="text-muted">{% trans "设置您的项目看板，开始高效的任务管理" %}</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" id="boardForm">
+            {% csrf_token %}
+            
+            <!-- 基本信息 -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% trans "基本信息" %}
+                </h3>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                            {{ form.name.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.help_text %}
+                            <div class="form-text">{{ form.name.help_text }}</div>
+                        {% endif %}
+                        {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.team.id_for_label }}" class="form-label">
+                            {{ form.team.label }}
+                        </label>
+                        {{ form.team }}
+                        {% if form.team.help_text %}
+                            <div class="form-text">{{ form.team.help_text }}</div>
+                        {% endif %}
+                        {% if form.team.errors %}
+                            <div class="text-danger">{{ form.team.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                        {{ form.description.label }}
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.help_text %}
+                        <div class="form-text">{{ form.description.help_text }}</div>
+                    {% endif %}
+                    {% if form.description.errors %}
+                        <div class="text-danger">{{ form.description.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.visibility.id_for_label }}" class="form-label">
+                            {{ form.visibility.label }}
+                        </label>
+                        {{ form.visibility }}
+                        {% if form.visibility.help_text %}
+                            <div class="form-text">{{ form.visibility.help_text }}</div>
+                        {% endif %}
+                        {% if form.visibility.errors %}
+                            <div class="text-danger">{{ form.visibility.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模板选择 -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="fas fa-th-large me-2"></i>
+                    {% trans "选择模板" %}
+                </h3>
+                
+                <div class="row" id="templateOptions">
+                    <div class="col-md-6">
+                        <div class="template-option" data-template="kanban">
+                            <div class="template-icon">
+                                <i class="fas fa-columns"></i>
+                            </div>
+                            <div class="template-name">{% trans "看板模板" %}</div>
+                            <div class="template-description">
+                                {% trans "经典的三列看板：待办、进行中、已完成" %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="template-option" data-template="scrum">
+                            <div class="template-icon">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <div class="template-name">{% trans "敏捷开发" %}</div>
+                            <div class="template-description">
+                                {% trans "适合敏捷开发的工作流：产品待办、冲刺待办、进行中、测试中、已完成" %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="template-option" data-template="personal">
+                            <div class="template-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="template-name">{% trans "个人任务" %}</div>
+                            <div class="template-description">
+                                {% trans "个人任务管理：今日任务、本周任务、以后再做、已完成" %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="template-option" data-template="project">
+                            <div class="template-icon">
+                                <i class="fas fa-project-diagram"></i>
+                            </div>
+                            <div class="template-name">{% trans "项目管理" %}</div>
+                            <div class="template-description">
+                                {% trans "项目流程管理：需求分析、设计开发、测试验收、上线部署" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {{ form.template }}
+                {% if form.template.errors %}
+                    <div class="text-danger">{{ form.template.errors }}</div>
+                {% endif %}
+            </div>
+
+            <!-- 外观设置 -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="fas fa-palette me-2"></i>
+                    {% trans "外观设置" %}
+                </h3>
+                
+                <div class="mb-3">
+                    <label for="{{ form.background_color.id_for_label }}" class="form-label">
+                        {{ form.background_color.label }}
+                    </label>
+                    <div class="color-picker-container">
+                        {{ form.background_color }}
+                        <div class="color-presets ms-3">
+                            <div class="color-preset" data-color="#0079bf" style="background-color: #0079bf;" title="蓝色"></div>
+                            <div class="color-preset" data-color="#d29034" style="background-color: #d29034;" title="橙色"></div>
+                            <div class="color-preset" data-color="#519839" style="background-color: #519839;" title="绿色"></div>
+                            <div class="color-preset" data-color="#b04632" style="background-color: #b04632;" title="红色"></div>
+                            <div class="color-preset" data-color="#89609e" style="background-color: #89609e;" title="紫色"></div>
+                            <div class="color-preset" data-color="#cd5a91" style="background-color: #cd5a91;" title="粉色"></div>
+                        </div>
+                    </div>
+                    {% if form.background_color.help_text %}
+                        <div class="form-text">{{ form.background_color.help_text }}</div>
+                    {% endif %}
+                    {% if form.background_color.errors %}
+                        <div class="text-danger">{{ form.background_color.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.background_image.id_for_label }}" class="form-label">
+                        {{ form.background_image.label }}
+                    </label>
+                    {{ form.background_image }}
+                    {% if form.background_image.help_text %}
+                        <div class="form-text">{{ form.background_image.help_text }}</div>
+                    {% endif %}
+                    {% if form.background_image.errors %}
+                        <div class="text-danger">{{ form.background_image.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- 预览 -->
+                <div class="mb-3">
+                    <label class="form-label">{% trans "预览" %}</label>
+                    <div class="preview-board" id="boardPreview">
+                        <div class="preview-overlay">
+                            <span id="previewText">{% trans "看板名称" %}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能设置 -->
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="fas fa-cogs me-2"></i>
+                    {% trans "功能设置" %}
+                </h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="feature-toggle">
+                            <div class="form-check">
+                                {{ form.enable_calendar }}
+                                <label class="form-check-label" for="{{ form.enable_calendar.id_for_label }}">
+                                    {{ form.enable_calendar.label }}
+                                </label>
+                            </div>
+                            <div class="feature-description">
+                                {% trans "启用日历视图来查看任务的时间安排" %}
+                            </div>
+                        </div>
+                        
+                        <div class="feature-toggle">
+                            <div class="form-check">
+                                {{ form.enable_timeline }}
+                                <label class="form-check-label" for="{{ form.enable_timeline.id_for_label }}">
+                                    {{ form.enable_timeline.label }}
+                                </label>
+                            </div>
+                            <div class="feature-description">
+                                {% trans "启用时间线视图来跟踪项目进度" %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="feature-toggle">
+                            <div class="form-check">
+                                {{ form.enable_comments }}
+                                <label class="form-check-label" for="{{ form.enable_comments.id_for_label }}">
+                                    {{ form.enable_comments.label }}
+                                </label>
+                            </div>
+                            <div class="feature-description">
+                                {% trans "允许团队成员在任务上添加评论" %}
+                            </div>
+                        </div>
+                        
+                        <div class="feature-toggle">
+                            <div class="form-check">
+                                {{ form.enable_attachments }}
+                                <label class="form-check-label" for="{{ form.enable_attachments.id_for_label }}">
+                                    {{ form.enable_attachments.label }}
+                                </label>
+                            </div>
+                            <div class="feature-description">
+                                {% trans "允许在任务上上传文件附件" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提交按钮 -->
+            <div class="text-center">
+                <a href="{% url 'boards:list' %}" class="btn btn-secondary me-3">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    {% trans "取消" %}
+                </a>
+                <button type="submit" class="btn btn-create">
+                    <i class="fas fa-plus me-2"></i>
+                    {% trans "创建看板" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 模板选择
+    const templateOptions = document.querySelectorAll('.template-option');
+    const templateInput = document.getElementById('{{ form.template.id_for_label }}');
+    
+    templateOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            // 移除之前的选择
+            templateOptions.forEach(opt => opt.classList.remove('selected'));
+            // 选择当前项
+            this.classList.add('selected');
+            // 设置表单值
+            templateInput.value = this.dataset.template;
+        });
+    });
+    
+    // 设置默认选择
+    const defaultTemplate = templateInput.value || 'kanban';
+    const defaultOption = document.querySelector(`[data-template="${defaultTemplate}"]`);
+    if (defaultOption) {
+        defaultOption.classList.add('selected');
+    }
+    
+    // 颜色预设选择
+    const colorPresets = document.querySelectorAll('.color-preset');
+    const colorInput = document.getElementById('{{ form.background_color.id_for_label }}');
+    
+    colorPresets.forEach(preset => {
+        preset.addEventListener('click', function() {
+            colorPresets.forEach(p => p.classList.remove('selected'));
+            this.classList.add('selected');
+            colorInput.value = this.dataset.color;
+            updatePreview();
+        });
+    });
+    
+    // 预览更新
+    const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+    const previewBoard = document.getElementById('boardPreview');
+    const previewText = document.getElementById('previewText');
+    
+    function updatePreview() {
+        const name = nameInput.value || '{% trans "看板名称" %}';
+        const color = colorInput.value;
+        
+        previewText.textContent = name;
+        previewBoard.style.backgroundColor = color;
+    }
+    
+    // 监听输入变化
+    nameInput.addEventListener('input', updatePreview);
+    colorInput.addEventListener('change', updatePreview);
+    
+    // 初始化预览
+    updatePreview();
+    
+    // 背景图片预览
+    const imageInput = document.getElementById('{{ form.background_image.id_for_label }}');
+    imageInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewBoard.style.backgroundImage = `url(${e.target.result})`;
+                previewBoard.style.backgroundSize = 'cover';
+                previewBoard.style.backgroundPosition = 'center';
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+});
+</script>
+{% endblock %}

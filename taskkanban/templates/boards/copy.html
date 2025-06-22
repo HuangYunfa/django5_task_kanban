@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "复制看板" %} - {{ board.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .copy-container {
+        max-width: 700px;
+        margin: 2rem auto;
+    }
+    
+    .source-board {
+        background: linear-gradient(135deg, {{ board.background_color|default:"#4a90e2" }}, #357abd);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+    
+    .copy-form {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .form-body {
+        padding: 2rem;
+    }
+    
+    .options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .option-card {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .option-card:hover {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
+    
+    .option-card.selected {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
+    
+    .preview-stats {
+        display: flex;
+        justify-content: space-around;
+        margin: 1rem 0;
+    }
+    
+    .stat {
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="copy-container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'boards:list' %}">{% trans "看板" %}</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'boards:detail' board.slug %}">{{ board.name }}</a>
+                </li>
+                <li class="breadcrumb-item active">{% trans "复制" %}</li>
+            </ol>
+        </nav>
+        
+        <!-- 源看板预览 -->
+        <div class="source-board">
+            <h3 class="mb-3">
+                <i class="fas fa-copy me-2"></i>
+                {% trans "复制看板" %}
+            </h3>
+            <h4 class="mb-2">{{ board.name }}</h4>
+            <p class="mb-3 opacity-75">
+                {% if board.description %}
+                    {{ board.description }}
+                {% else %}
+                    {% trans "暂无描述" %}
+                {% endif %}
+            </p>
+            
+            <div class="preview-stats">
+                <div class="stat">
+                    <div class="stat-number">{{ board.lists.count }}</div>
+                    <div class="stat-label">{% trans "列表" %}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">{{ total_tasks }}</div>
+                    <div class="stat-label">{% trans "任务" %}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">{{ board.members.count }}</div>
+                    <div class="stat-label">{% trans "成员" %}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 复制表单 -->
+        <div class="copy-form">
+            <div class="form-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>
+                    {% trans "复制设置" %}
+                </h5>
+            </div>
+            
+            <form method="post" class="form-body">
+                {% csrf_token %}
+                
+                <!-- 基本信息 -->
+                <div class="mb-4">
+                    <h6 class="mb-3">{% trans "基本信息" %}</h6>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">{% trans "新看板名称" %}</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="name" 
+                               name="name" 
+                               value="{{ board.name }} ({% trans '副本' %})"
+                               required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">{% trans "描述" %}</label>
+                        <textarea class="form-control" 
+                                  id="description" 
+                                  name="description" 
+                                  rows="3">{{ board.description }}</textarea>
+                    </div>
+                </div>
+                
+                <!-- 复制选项 -->
+                <div class="mb-4">
+                    <h6 class="mb-3">{% trans "复制内容" %}</h6>
+                    
+                    <div class="options-grid">
+                        <div class="option-card">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="copy_lists" 
+                                       name="copy_lists" 
+                                       checked>
+                                <label class="form-check-label" for="copy_lists">
+                                    <strong>{% trans "复制列表" %}</strong>
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                {% trans "复制所有列表结构" %}
+                            </small>
+                        </div>
+                        
+                        <div class="option-card">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="copy_tasks" 
+                                       name="copy_tasks">
+                                <label class="form-check-label" for="copy_tasks">
+                                    <strong>{% trans "复制任务" %}</strong>
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                {% trans "复制所有任务内容" %}
+                            </small>
+                        </div>
+                        
+                        <div class="option-card">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="copy_labels" 
+                                       name="copy_labels" 
+                                       checked>
+                                <label class="form-check-label" for="copy_labels">
+                                    <strong>{% trans "复制标签" %}</strong>
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                {% trans "复制所有标签设置" %}
+                            </small>
+                        </div>
+                        
+                        <div class="option-card">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="copy_members" 
+                                       name="copy_members">
+                                <label class="form-check-label" for="copy_members">
+                                    <strong>{% trans "复制成员" %}</strong>
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                {% trans "邀请相同的成员" %}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {% trans "注意：复制的看板将成为独立的新看板，与原看板没有关联。" %}
+                    </div>
+                </div>
+                
+                <!-- 权限设置 -->
+                <div class="mb-4">
+                    <h6 class="mb-3">{% trans "权限设置" %}</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="visibility" class="form-label">{% trans "可见性" %}</label>
+                                <select class="form-select" id="visibility" name="visibility">
+                                    <option value="private" {% if board.visibility == 'private' %}selected{% endif %}>
+                                        {% trans "私有" %}
+                                    </option>
+                                    <option value="team" {% if board.visibility == 'team' %}selected{% endif %}>
+                                        {% trans "团队" %}
+                                    </option>
+                                    <option value="public" {% if board.visibility == 'public' %}selected{% endif %}>
+                                        {% trans "公开" %}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="team" class="form-label">{% trans "团队" %}</label>
+                                <select class="form-select" id="team" name="team">
+                                    <option value="">{% trans "不指定团队" %}</option>
+                                    {% for team in user_teams %}
+                                    <option value="{{ team.id }}" 
+                                            {% if board.team_id == team.id %}selected{% endif %}>
+                                        {{ team.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'boards:detail' board.slug %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i>
+                        {% trans "取消" %}
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-copy me-1"></i>
+                        {% trans "创建副本" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 依赖关系处理
+document.addEventListener('DOMContentLoaded', function() {
+    const copyTasksCheckbox = document.getElementById('copy_tasks');
+    const copyLabelsCheckbox = document.getElementById('copy_labels');
+    
+    // 如果复制任务，自动选中复制标签
+    copyTasksCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            copyLabelsCheckbox.checked = true;
+        }
+    });
+    
+    // 选项卡点击效果
+    document.querySelectorAll('.option-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const checkbox = this.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+            
+            // 更新视觉状态
+            if (checkbox.checked) {
+                this.classList.add('selected');
+            } else {
+                this.classList.remove('selected');
+            }
+        });
+    });
+    
+    // 初始化选中状态
+    document.querySelectorAll('.option-card input[type="checkbox"]').forEach(checkbox => {
+        if (checkbox.checked) {
+            checkbox.closest('.option-card').classList.add('selected');
+        }
+    });
+});
+</script>
+{% endblock %}
