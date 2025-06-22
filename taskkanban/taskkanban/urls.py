@@ -25,15 +25,17 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # 用户认证 (django-allauth)
-    path('accounts/', include('allauth.urls')),
-    
-    # 应用路由
+    path('accounts/', include('allauth.urls')),    # 应用路由
     path('', include('common.urls')),
     path('users/', include('users.urls')),
     path('boards/', include('boards.urls')),
     path('tasks/', include('tasks.urls')),
     path('teams/', include('teams.urls')),
     path('reports/', include('reports.urls')),
+    path('notifications/', include('notifications.urls')),
+    
+    # API路由
+    path('api/', include('api.urls')),
 ]
 
 # 开发环境下的媒体文件服务

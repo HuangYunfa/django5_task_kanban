@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "通知偏好设置" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-bell"></i>
+                        {% trans "通知偏好设置" %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'notifications:update_preferences' %}">
+                        {% csrf_token %}
+                        
+                        <!-- 全局设置 -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">{% trans "全局设置" %}</h5>
+                            <div class="form-check">
+                                {{ form.email_enabled }}
+                                <label class="form-check-label" for="{{ form.email_enabled.id_for_label }}">
+                                    {{ form.email_enabled.label }}
+                                </label>
+                                {% if form.email_enabled.help_text %}
+                                    <div class="form-text">{{ form.email_enabled.help_text }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- 任务通知 -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">{% trans "任务通知" %}</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="{{ form.task_assigned.id_for_label }}">
+                                        {{ form.task_assigned.label }}
+                                    </label>
+                                    {{ form.task_assigned }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="{{ form.task_status_changed.id_for_label }}">
+                                        {{ form.task_status_changed.label }}
+                                    </label>
+                                    {{ form.task_status_changed }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="{{ form.task_due_reminder.id_for_label }}">
+                                        {{ form.task_due_reminder.label }}
+                                    </label>
+                                    {{ form.task_due_reminder }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="{{ form.task_comment_mention.id_for_label }}">
+                                        {{ form.task_comment_mention.label }}
+                                    </label>
+                                    {{ form.task_comment_mention }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 团队通知 -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">{% trans "团队通知" %}</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="{{ form.team_invitation.id_for_label }}">
+                                        {{ form.team_invitation.label }}
+                                    </label>
+                                    {{ form.team_invitation }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="{{ form.board_member_added.id_for_label }}">
+                                        {{ form.board_member_added.label }}
+                                    </label>
+                                    {{ form.board_member_added }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 摘要通知 -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">{% trans "摘要通知" %}</h5>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" for="{{ form.daily_summary.id_for_label }}">
+                                        {{ form.daily_summary.label }}
+                                    </label>
+                                    {{ form.daily_summary }}
+                                    {% if form.daily_summary.help_text %}
+                                        <div class="form-text">{{ form.daily_summary.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" for="{{ form.weekly_summary.id_for_label }}">
+                                        {{ form.weekly_summary.label }}
+                                    </label>
+                                    {{ form.weekly_summary }}
+                                    {% if form.weekly_summary.help_text %}
+                                        <div class="form-text">{{ form.weekly_summary.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" for="{{ form.team_activity_summary.id_for_label }}">
+                                        {{ form.team_activity_summary.label }}
+                                    </label>
+                                    {{ form.team_activity_summary }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 提交按钮 -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'users:profile' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i>
+                                {% trans "返回个人资料" %}
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                {% trans "保存设置" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 当前邮箱状态 -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">{% trans "邮箱状态" %}</h6>
+                    <p class="mb-1">
+                        <strong>{% trans "邮箱地址" %}:</strong> 
+                        {{ user.email|default:"未设置" }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>{% trans "验证状态" %}:</strong> 
+                        {% if preference.email_verified %}
+                            <span class="badge bg-success">{% trans "已验证" %}</span>
+                        {% else %}
+                            <span class="badge bg-warning">{% trans "未验证" %}</span>
+                            <small class="text-muted">{% trans "未验证的邮箱无法接收通知" %}</small>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

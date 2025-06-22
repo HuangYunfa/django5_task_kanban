@@ -1,0 +1,2308 @@
+openapi: 3.0.3
+info:
+  title: 企业级任务看板 API
+  version: 1.0.0
+  description: 任务看板系统的RESTful API文档
+paths:
+  /api/auth/login/:
+    post:
+      operationId: api_auth_login_create
+      description: 自定义JWT获取视图
+      summary: 获取JWT令牌
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/auth/refresh/:
+    post:
+      operationId: api_auth_refresh_create
+      description: 自定义JWT刷新视图
+      summary: 刷新JWT令牌
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/boards/:
+    get:
+      operationId: api_v1_boards_list
+      description: 看板管理API
+      summary: 获取看板列表
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBoardListList'
+          description: ''
+    post:
+      operationId: api_v1_boards_create
+      description: 看板管理API
+      summary: 创建看板
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoardCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BoardCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BoardCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardCreate'
+          description: ''
+  /api/v1/boards/{id}/:
+    get:
+      operationId: api_v1_boards_retrieve
+      description: 看板管理API
+      summary: 获取看板详情
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 看板.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+          description: ''
+    put:
+      operationId: api_v1_boards_update
+      description: 看板管理API
+      summary: 更新看板
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 看板.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoardRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BoardRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BoardRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+          description: ''
+    patch:
+      operationId: api_v1_boards_partial_update
+      description: 看板管理API
+      summary: 部分更新看板
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 看板.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBoardRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBoardRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBoardRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+          description: ''
+    delete:
+      operationId: api_v1_boards_destroy
+      description: 看板管理API
+      summary: 删除看板
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 看板.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/boards/{id}/add_member/:
+    post:
+      operationId: api_v1_boards_add_member_create
+      description: 添加看板成员
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 看板.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BoardRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BoardRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BoardRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+          description: ''
+  /api/v1/boards/{id}/members/:
+    get:
+      operationId: api_v1_boards_members_retrieve
+      description: 获取看板成员
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 看板.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+          description: ''
+  /api/v1/reports/:
+    get:
+      operationId: api_v1_reports_list
+      description: 报表管理API
+      summary: 获取报表列表
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReportList'
+          description: ''
+    post:
+      operationId: api_v1_reports_create
+      description: 报表管理API
+      summary: 创建报表
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+  /api/v1/reports/{id}/:
+    get:
+      operationId: api_v1_reports_retrieve
+      description: 报表管理API
+      summary: 获取报表详情
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 报表.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+    put:
+      operationId: api_v1_reports_update
+      description: 报表管理API
+      summary: 更新报表
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 报表.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+    patch:
+      operationId: api_v1_reports_partial_update
+      description: 报表管理API
+      summary: 部分更新报表
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 报表.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReportRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReportRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+    delete:
+      operationId: api_v1_reports_destroy
+      description: 报表管理API
+      summary: 删除报表
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 报表.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/reports/{id}/data/:
+    get:
+      operationId: api_v1_reports_data_retrieve
+      description: 获取报表数据
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 报表.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+  /api/v1/reports/{id}/export/:
+    post:
+      operationId: api_v1_reports_export_create
+      description: 导出报表
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 报表.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+  /api/v1/tasks/:
+    get:
+      operationId: api_v1_tasks_list
+      description: 任务管理API
+      summary: 获取任务列表
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTaskList'
+          description: ''
+    post:
+      operationId: api_v1_tasks_create
+      description: 任务管理API
+      summary: 创建任务
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreate'
+          description: ''
+  /api/v1/tasks/{id}/:
+    get:
+      operationId: api_v1_tasks_retrieve
+      description: 任务管理API
+      summary: 获取任务详情
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 任务.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    put:
+      operationId: api_v1_tasks_update
+      description: 任务管理API
+      summary: 更新任务
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 任务.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    patch:
+      operationId: api_v1_tasks_partial_update
+      description: 任务管理API
+      summary: 部分更新任务
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 任务.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    delete:
+      operationId: api_v1_tasks_destroy
+      description: 任务管理API
+      summary: 删除任务
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 任务.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/tasks/{id}/assign_users/:
+    post:
+      operationId: api_v1_tasks_assign_users_create
+      description: 分配用户到任务
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 任务.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/tasks/{id}/change_status/:
+    post:
+      operationId: api_v1_tasks_change_status_create
+      description: 更改任务状态
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 任务.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/teams/:
+    get:
+      operationId: api_v1_teams_list
+      description: 团队管理API
+      summary: 获取团队列表
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTeamList'
+          description: ''
+    post:
+      operationId: api_v1_teams_create
+      description: 团队管理API
+      summary: 创建团队
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamCreate'
+          description: ''
+  /api/v1/teams/{id}/:
+    get:
+      operationId: api_v1_teams_retrieve
+      description: 团队管理API
+      summary: 获取团队详情
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    put:
+      operationId: api_v1_teams_update
+      description: 团队管理API
+      summary: 更新团队
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TeamRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TeamRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    patch:
+      operationId: api_v1_teams_partial_update
+      description: 团队管理API
+      summary: 部分更新团队
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTeamRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTeamRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTeamRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    delete:
+      operationId: api_v1_teams_destroy
+      description: 团队管理API
+      summary: 删除团队
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/teams/{id}/add_member/:
+    post:
+      operationId: api_v1_teams_add_member_create
+      description: 添加团队成员
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TeamRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TeamRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/members/:
+    get:
+      operationId: api_v1_teams_members_retrieve
+      description: 获取团队成员
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/performance/:
+    get:
+      operationId: api_v1_teams_performance_retrieve
+      description: 获取团队绩效数据
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/remove_member/:
+    delete:
+      operationId: api_v1_teams_remove_member_destroy
+      description: 移除团队成员
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 团队.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/users/:
+    get:
+      operationId: api_v1_users_list
+      description: 用户管理API
+      summary: 获取用户列表
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: api_v1_users_create
+      description: 用户管理API
+      summary: 创建用户
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCreate'
+          description: ''
+  /api/v1/users/{id}/:
+    get:
+      operationId: api_v1_users_retrieve
+      description: 用户管理API
+      summary: 获取用户详情
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 用户.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: api_v1_users_update
+      description: 用户管理API
+      summary: 更新用户
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 用户.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: api_v1_users_partial_update
+      description: 用户管理API
+      summary: 部分更新用户
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 用户.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: api_v1_users_destroy
+      description: 用户管理API
+      summary: 删除用户
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this 用户.
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/users/me/:
+    get:
+      operationId: api_v1_users_me_retrieve
+      description: 获取当前用户信息
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/update_profile/:
+    put:
+      operationId: api_v1_users_update_profile_update
+      description: 更新当前用户资料
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: api_v1_users_update_profile_partial_update
+      description: 更新当前用户资料
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    Board:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 看板名称
+          maxLength: 100
+          minLength: 2
+        description:
+          type: string
+          nullable: true
+          title: 看板描述
+          maxLength: 500
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可见性
+        owner:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        boardlist_set:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoardList'
+          readOnly: true
+        task_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - boardlist_set
+      - created_at
+      - id
+      - name
+      - owner
+      - task_count
+      - updated_at
+    BoardCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: 看板名称
+          maxLength: 100
+          minLength: 2
+        description:
+          type: string
+          nullable: true
+          title: 看板描述
+          maxLength: 500
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可见性
+        template:
+          allOf:
+          - $ref: '#/components/schemas/TemplateEnum'
+          title: 模板类型
+      required:
+      - name
+    BoardCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          title: 看板名称
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          title: 看板描述
+          maxLength: 500
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可见性
+        template:
+          allOf:
+          - $ref: '#/components/schemas/TemplateEnum'
+          title: 模板类型
+      required:
+      - name
+    BoardList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 列表名称
+          maxLength: 100
+        position:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 排序位置
+        task_count:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - name
+      - task_count
+    BoardListRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 列表名称
+          maxLength: 100
+        position:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: 排序位置
+      required:
+      - name
+    BoardRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          title: 看板名称
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          title: 看板描述
+          maxLength: 500
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可见性
+      required:
+      - name
+    CustomTokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    PaginatedBoardListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoardList'
+    PaginatedReportList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+    PaginatedTaskList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+    PaginatedTeamList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Team'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PatchedBoardRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          title: 看板名称
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          title: 看板描述
+          maxLength: 500
+        visibility:
+          allOf:
+          - $ref: '#/components/schemas/VisibilityEnum'
+          title: 可见性
+    PatchedReportRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 报表名称
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          title: 报表描述
+        report_type:
+          allOf:
+          - $ref: '#/components/schemas/ReportTypeEnum'
+          title: 报表类型
+        config:
+          title: 报表配置
+        is_public:
+          type: boolean
+          title: 公开报表
+    PatchedTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          title: 任务标题
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          title: 任务描述
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusD4dEnum'
+          title: 状态
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          title: 优先级
+        board:
+          type: integer
+          title: 所属看板
+        board_list:
+          type: integer
+          title: 所属列表
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: 截止日期
+    PatchedTeamRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          title: 团队名称
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          title: 团队描述
+          maxLength: 500
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: 团队头像
+        is_public:
+          type: boolean
+          title: 公开团队
+          description: 公开团队允许任何人查看
+        allow_join_request:
+          type: boolean
+          title: 允许加入申请
+    PatchedUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: 用户名
+          description: 必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: 邮箱地址
+          maxLength: 254
+        first_name:
+          type: string
+          title: 名字
+          maxLength: 150
+        last_name:
+          type: string
+          title: 姓氏
+          maxLength: 150
+    PriorityEnum:
+      enum:
+      - low
+      - normal
+      - high
+      - urgent
+      type: string
+      description: |-
+        * `low` - 低优先级
+        * `normal` - 普通
+        * `high` - 高优先级
+        * `urgent` - 紧急
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 报表名称
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          title: 报表描述
+        report_type:
+          allOf:
+          - $ref: '#/components/schemas/ReportTypeEnum'
+          title: 报表类型
+        config:
+          title: 报表配置
+        is_public:
+          type: boolean
+          title: 公开报表
+        created_by:
+          type: integer
+          readOnly: true
+          title: 创建者
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - created_at
+      - created_by
+      - id
+      - name
+      - report_type
+      - updated_at
+    ReportRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: 报表名称
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          title: 报表描述
+        report_type:
+          allOf:
+          - $ref: '#/components/schemas/ReportTypeEnum'
+          title: 报表类型
+        config:
+          title: 报表配置
+        is_public:
+          type: boolean
+          title: 公开报表
+      required:
+      - name
+      - report_type
+    ReportTypeEnum:
+      enum:
+      - task_completion
+      - user_workload
+      - team_performance
+      - project_progress
+      - time_tracking
+      - custom
+      type: string
+      description: |-
+        * `task_completion` - 任务完成统计
+        * `user_workload` - 用户工作负载
+        * `team_performance` - 团队绩效
+        * `project_progress` - 项目进度
+        * `time_tracking` - 时间追踪
+        * `custom` - 自定义报表
+    RoleEnum:
+      enum:
+      - owner
+      - admin
+      - member
+      - guest
+      type: string
+      description: |-
+        * `owner` - 所有者
+        * `admin` - 管理员
+        * `member` - 成员
+        * `guest` - 访客
+    StatusD4dEnum:
+      enum:
+      - todo
+      - in_progress
+      - review
+      - done
+      - blocked
+      type: string
+      description: |-
+        * `todo` - 待办
+        * `in_progress` - 进行中
+        * `review` - 审核中
+        * `done` - 已完成
+        * `blocked` - 已阻塞
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: 任务标题
+          maxLength: 200
+          minLength: 2
+        description:
+          type: string
+          nullable: true
+          title: 任务描述
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusD4dEnum'
+          title: 状态
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          title: 优先级
+        board:
+          type: integer
+          title: 所属看板
+        board_list:
+          type: integer
+          title: 所属列表
+        creator:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+          readOnly: true
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: 截止日期
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - assignees
+      - board
+      - board_list
+      - created_at
+      - creator
+      - id
+      - title
+      - updated_at
+    TaskCreate:
+      type: object
+      properties:
+        title:
+          type: string
+          title: 任务标题
+          maxLength: 200
+          minLength: 2
+        description:
+          type: string
+          nullable: true
+          title: 任务描述
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusD4dEnum'
+          title: 状态
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          title: 优先级
+        board:
+          type: integer
+          title: 所属看板
+        board_list:
+          type: integer
+          title: 所属列表
+        assignees:
+          type: array
+          items:
+            type: integer
+            title: 分配给
+          readOnly: true
+          title: 分配给
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: 截止日期
+      required:
+      - assignees
+      - board
+      - board_list
+      - title
+    TaskCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          title: 任务标题
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          title: 任务描述
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusD4dEnum'
+          title: 状态
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          title: 优先级
+        board:
+          type: integer
+          title: 所属看板
+        board_list:
+          type: integer
+          title: 所属列表
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: 截止日期
+      required:
+      - board
+      - board_list
+      - title
+    TaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          title: 任务标题
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          title: 任务描述
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusD4dEnum'
+          title: 状态
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          title: 优先级
+        board:
+          type: integer
+          title: 所属看板
+        board_list:
+          type: integer
+          title: 所属列表
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: 截止日期
+      required:
+      - board
+      - board_list
+      - title
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: 团队名称
+          maxLength: 100
+          minLength: 2
+        description:
+          type: string
+          nullable: true
+          title: 团队描述
+          maxLength: 500
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: 团队头像
+        is_public:
+          type: boolean
+          title: 公开团队
+          description: 公开团队允许任何人查看
+        allow_join_request:
+          type: boolean
+          title: 允许加入申请
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamMembership'
+          readOnly: true
+        member_count:
+          type: integer
+          readOnly: true
+        board_count:
+          type: integer
+          readOnly: true
+        created_by:
+          type: integer
+          readOnly: true
+          title: 创建者
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - board_count
+      - created_at
+      - created_by
+      - id
+      - member_count
+      - memberships
+      - name
+      - updated_at
+    TeamCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: 团队名称
+          maxLength: 100
+          minLength: 2
+        description:
+          type: string
+          nullable: true
+          title: 团队描述
+          maxLength: 500
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: 团队头像
+        is_public:
+          type: boolean
+          title: 公开团队
+          description: 公开团队允许任何人查看
+        allow_join_request:
+          type: boolean
+          title: 允许加入申请
+      required:
+      - name
+    TeamCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          title: 团队名称
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          title: 团队描述
+          maxLength: 500
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: 团队头像
+        is_public:
+          type: boolean
+          title: 公开团队
+          description: 公开团队允许任何人查看
+        allow_join_request:
+          type: boolean
+          title: 允许加入申请
+      required:
+      - name
+    TeamMembership:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        joined_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 加入时间
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TeamMembershipStatusEnum'
+          title: 状态
+      required:
+      - id
+      - user
+    TeamMembershipRequest:
+      type: object
+      properties:
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: 角色
+        joined_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: 加入时间
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TeamMembershipStatusEnum'
+          title: 状态
+    TeamMembershipStatusEnum:
+      enum:
+      - pending
+      - active
+      - inactive
+      - blocked
+      type: string
+      description: |-
+        * `pending` - 待确认
+        * `active` - 活跃
+        * `inactive` - 非活跃
+        * `blocked` - 已屏蔽
+    TeamRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          title: 团队名称
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          title: 团队描述
+          maxLength: 500
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: 团队头像
+        is_public:
+          type: boolean
+          title: 公开团队
+          description: 公开团队允许任何人查看
+        allow_join_request:
+          type: boolean
+          title: 允许加入申请
+      required:
+      - name
+    TemplateEnum:
+      enum:
+      - kanban
+      - scrum
+      - personal
+      - project
+      - custom
+      type: string
+      description: |-
+        * `kanban` - 看板模板
+        * `scrum` - 敏捷开发
+        * `personal` - 个人任务
+        * `project` - 项目管理
+        * `custom` - 自定义
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: 用户名
+          description: 必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: 邮箱地址
+          maxLength: 254
+        first_name:
+          type: string
+          title: 名字
+          maxLength: 150
+        last_name:
+          type: string
+          title: 姓氏
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 加入日期
+        is_active:
+          type: boolean
+          readOnly: true
+          title: 有效
+          description: 指明用户是否被认为是活跃的。以反选代替删除帐号。
+      required:
+      - date_joined
+      - email
+      - id
+      - is_active
+      - username
+    UserCreate:
+      type: object
+      properties:
+        username:
+          type: string
+          title: 用户名
+          description: 必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: 邮箱地址
+          maxLength: 254
+        first_name:
+          type: string
+          title: 名字
+          maxLength: 150
+        last_name:
+          type: string
+          title: 姓氏
+          maxLength: 150
+      required:
+      - email
+      - username
+    UserCreateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: 用户名
+          description: 必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: 邮箱地址
+          maxLength: 254
+        first_name:
+          type: string
+          title: 名字
+          maxLength: 150
+        last_name:
+          type: string
+          title: 姓氏
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+      - password_confirm
+      - username
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: 用户名
+          description: 必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: 邮箱地址
+          maxLength: 254
+        first_name:
+          type: string
+          title: 名字
+          maxLength: 150
+        last_name:
+          type: string
+          title: 姓氏
+          maxLength: 150
+      required:
+      - email
+      - username
+    VisibilityEnum:
+      enum:
+      - private
+      - team
+      - public
+      type: string
+      description: |-
+        * `private` - 私有
+        * `team` - 团队可见
+        * `public` - 公开
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
