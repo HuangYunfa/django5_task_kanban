@@ -144,6 +144,26 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'users/auth/password_reset_complete.html'
 
 
+# 邮箱验证视图
+def email_verify(request, uidb64, token):
+    """邮箱验证视图"""
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+    
+    if user is not None and default_token_generator.check_token(user, token):
+        user.email_verified = True
+        user.save()
+        messages.success(request, _('邮箱验证成功！'))
+        login(request, user)
+        return redirect('common:dashboard')
+    else:
+        messages.error(request, _('邮箱验证链接无效或已过期。'))
+        return redirect('users:login')
+
+
 class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     """用户密码修改视图"""
     form_class = CustomPasswordChangeForm
@@ -151,8 +171,8 @@ class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     success_url = reverse_lazy('users:password_change_done')
 
 
-class UserPasswordChangeDoneView(LoginRequiredMixin, PasswordChangeDoneView):
-    """用户密码修改完成视图"""
+class UserPasswordChangeDoneView(LoginRequiredMixin, TemplateView):
+    """密码修改完成视图"""
     template_name = 'users/auth/password_change_done.html'
 
 

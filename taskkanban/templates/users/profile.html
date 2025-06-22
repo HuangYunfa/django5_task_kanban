@@ -1,0 +1,551 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "个人资料" %} - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .content-wrapper {
+        background: #f8fafc;
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+    
+    .page-header {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .page-title {
+        color: #1f2937;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .breadcrumb {
+        background: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+        font-size: 0.875rem;
+    }
+    
+    .breadcrumb-item a {
+        color: #6b7280;
+        text-decoration: none;
+    }
+    
+    .breadcrumb-item.active {
+        color: #374151;
+    }
+    
+    .profile-header {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .avatar-section {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+    
+    .user-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    
+    .avatar-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .avatar-section:hover .avatar-overlay {
+        opacity: 1;
+    }
+    
+    .avatar-overlay i {
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .user-info h2 {
+        color: #1f2937;
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .user-meta {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .user-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    
+    .profile-content {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 2rem;
+    }
+    
+    .profile-main {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .profile-sidebar {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        height: fit-content;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 10px 10px 0 0;
+        margin: 0;
+    }
+    
+    .form-header h3 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-body {
+        padding: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #fafafa;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .sidebar-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .sidebar-menu li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .sidebar-menu a {
+        display: block;
+        padding: 0.75rem 1rem;
+        color: #6b7280;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar-menu a:hover,
+    .sidebar-menu a.active {
+        background: #f3f4f6;
+        color: #1f2937;
+    }
+    
+    .sidebar-menu a i {
+        margin-right: 0.5rem;
+        width: 1rem;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .alert-success {
+        background-color: #d1fae5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+    }
+    
+    .alert-danger {
+        background-color: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+    }
+    
+    .form-errors {
+        color: #dc2626;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    @media (max-width: 1024px) {
+        .profile-content {
+            grid-template-columns: 1fr;
+        }
+        
+        .profile-sidebar {
+            order: -1;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .user-stats {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .content-wrapper {
+            padding: 1rem 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-user me-3"></i>
+                {% trans "个人资料" %}
+            </h1>
+            <nav class="breadcrumb">
+                <a href="{% url 'common:dashboard' %}" class="breadcrumb-item">{% trans "首页" %}</a>
+                <span class="breadcrumb-item active">{% trans "个人资料" %}</span>
+            </nav>
+        </div>
+        
+        <div class="profile-header">
+            <div class="avatar-section">
+                <img src="{{ user.get_avatar_url }}" alt="{% trans '用户头像' %}" class="user-avatar">
+                <div class="avatar-overlay" onclick="document.getElementById('avatar-upload').click()">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <input type="file" id="avatar-upload" style="display: none;" accept="image/*">
+            </div>
+            
+            <div class="user-info">
+                <h2>{{ user.get_full_name|default:user.username }}</h2>
+                <div class="user-meta">
+                    <span><i class="fas fa-at me-1"></i>{{ user.username }}</span>
+                    {% if user.email %}
+                        <span class="ms-3"><i class="fas fa-envelope me-1"></i>{{ user.email }}</span>
+                        {% if user.email_verified %}
+                            <i class="fas fa-check-circle text-success ms-1" title="{% trans '邮箱已验证' %}"></i>
+                        {% else %}
+                            <i class="fas fa-exclamation-circle text-warning ms-1" title="{% trans '邮箱未验证' %}"></i>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="user-meta">
+                    <span><i class="fas fa-calendar me-1"></i>{% trans "加入时间" %}: {{ user.date_joined|date:"Y年m月d日" }}</span>
+                </div>
+            </div>
+            
+            <div class="user-stats">
+                <div class="stat-item">
+                    <span class="stat-value">{{ user.created_boards.count|default:0 }}</span>
+                    <div class="stat-label">{% trans "创建的看板" %}</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ user.assigned_tasks.count|default:0 }}</span>
+                    <div class="stat-label">{% trans "分配的任务" %}</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ user.team_memberships.count|default:0 }}</span>
+                    <div class="stat-label">{% trans "参与的团队" %}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="profile-content">
+            <div class="profile-main">
+                <div class="form-header">
+                    <h3>
+                        <i class="fas fa-edit me-2"></i>
+                        {% trans "编辑资料" %}
+                    </h3>
+                </div>
+                
+                <div class="form-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.first_name.id_for_label }}">
+                                        {{ form.first_name.label }}
+                                    </label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                        <div class="form-errors">
+                                            {{ form.first_name.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.last_name.id_for_label }}">
+                                        {{ form.last_name.label }}
+                                    </label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                        <div class="form-errors">
+                                            {{ form.last_name.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.email.id_for_label }}">
+                                {{ form.email.label }}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.help_text %}
+                                <small class="help-text">{{ form.email.help_text }}</small>
+                            {% endif %}
+                            {% if form.email.errors %}
+                                <div class="form-errors">
+                                    {{ form.email.errors }}
+                                </div>
+                            {% endif %}
+                        </div>                        
+                        {% if form.nickname %}
+                        <div class="form-group">
+                            <label for="{{ form.nickname.id_for_label }}">
+                                {{ form.nickname.label }}
+                            </label>
+                            {{ form.nickname }}
+                            {% if form.nickname.help_text %}
+                                <small class="help-text">{{ form.nickname.help_text }}</small>
+                            {% endif %}
+                            {% if form.nickname.errors %}
+                                <div class="form-errors">
+                                    {{ form.nickname.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.bio %}
+                        <div class="form-group">
+                            <label for="{{ form.bio.id_for_label }}">
+                                {{ form.bio.label }}
+                            </label>
+                            {{ form.bio }}
+                            {% if form.bio.help_text %}
+                                <small class="help-text">{{ form.bio.help_text }}</small>
+                            {% endif %}
+                            {% if form.bio.errors %}
+                                <div class="form-errors">
+                                    {{ form.bio.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                {% trans "保存更改" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="profile-sidebar">
+                <h4>{% trans "账户管理" %}</h4>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="{% url 'users:profile' %}" class="active">
+                            <i class="fas fa-user"></i>
+                            {% trans "基本资料" %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'users:password_change' %}">
+                            <i class="fas fa-key"></i>
+                            {% trans "修改密码" %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'users:preferences' %}">
+                            <i class="fas fa-cog"></i>
+                            {% trans "偏好设置" %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'users:notifications' %}">
+                            <i class="fas fa-bell"></i>
+                            {% trans "通知设置" %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'users:activity' %}">
+                            <i class="fas fa-history"></i>
+                            {% trans "活动记录" %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'users:settings' %}">
+                            <i class="fas fa-shield-alt"></i>
+                            {% trans "安全设置" %}
+                        </a>
+                    </li>
+                </ul>
+                
+                {% if not user.email_verified and user.email %}
+                <div class="mt-4">
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            {% trans "您的邮箱尚未验证" %}
+                        </small>
+                    </div>
+                    <form method="post" action="{% url 'users:resend_verification' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            {% trans "重新发送验证邮件" %}
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 为表单控件添加样式类
+        const formControls = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
+        formControls.forEach(function(control) {
+            control.classList.add('form-control');
+        });
+        
+        // 头像上传功能
+        const avatarUpload = document.getElementById('avatar-upload');
+        if (avatarUpload) {
+            avatarUpload.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // 这里可以添加头像预览和上传逻辑
+                    console.log('选择的文件:', file.name);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

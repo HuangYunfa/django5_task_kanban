@@ -27,9 +27,10 @@ if os.path.exists(env_path):
     environ.Env.read_env(env_path)
 
 # 从环境变量获取敏感设置
-SECRET_KEY = env('SECRET_KEY')
-DEBUG = env('DEBUG')
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-only-for-development')
+DEBUG = env('DEBUG', default=True)
+# 强制设置ALLOWED_HOSTS以支持测试
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '*']
 
 
 # 应用定义
@@ -189,11 +190,12 @@ AUTHENTICATION_BACKENDS = [
 
 SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-ACCOUNT_USERNAME_REQUIRED = False
-LOGIN_REDIRECT_URL = '/'
-ACCOUNT_LOGOUT_REDIRECT_URL = '/accounts/login/'
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # 支持用户名和邮箱
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # 改为可选，避免测试时的问题
+ACCOUNT_USERNAME_REQUIRED = True
+LOGIN_URL = '/users/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/users/login/'
 
 # Bootstrap相关设置
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

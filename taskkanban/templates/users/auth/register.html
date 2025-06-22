@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "用户注册" %} - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-width: 400px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .auth-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .auth-header h2 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.8rem;
+    }
+    
+    .auth-body {
+        padding: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #fafafa;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-primary {
+        width: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.875rem 1.5rem;
+        border-radius: 10px;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .auth-footer {
+        text-align: center;
+        padding: 1rem 2rem 2rem;
+        color: #6b7280;
+    }
+    
+    .auth-footer a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .alert-danger {
+        background-color: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+    }
+    
+    .form-errors {
+        color: #dc2626;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .required {
+        color: #dc2626;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <h2>{% trans "创建账户" %}</h2>
+                        <p class="mb-0">{% trans "加入我们，开始您的项目管理之旅" %}</p>
+                    </div>
+                    
+                    <div class="auth-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            
+                            <div class="form-group">
+                                <label for="{{ form.username.id_for_label }}">
+                                    {{ form.username.label }}
+                                    {% if form.username.field.required %}<span class="required">*</span>{% endif %}
+                                </label>
+                                {{ form.username }}
+                                {% if form.username.help_text %}
+                                    <small class="help-text">{{ form.username.help_text }}</small>
+                                {% endif %}
+                                {% if form.username.errors %}
+                                    <div class="form-errors">
+                                        {{ form.username.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.email.id_for_label }}">
+                                    {{ form.email.label }}
+                                    {% if form.email.field.required %}<span class="required">*</span>{% endif %}
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.help_text %}
+                                    <small class="help-text">{{ form.email.help_text }}</small>
+                                {% endif %}
+                                {% if form.email.errors %}
+                                    <div class="form-errors">
+                                        {{ form.email.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.first_name.id_for_label }}">
+                                    {{ form.first_name.label }}
+                                    {% if form.first_name.field.required %}<span class="required">*</span>{% endif %}
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="form-errors">
+                                        {{ form.first_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.last_name.id_for_label }}">
+                                    {{ form.last_name.label }}
+                                    {% if form.last_name.field.required %}<span class="required">*</span>{% endif %}
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="form-errors">
+                                        {{ form.last_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.password1.id_for_label }}">
+                                    {{ form.password1.label }}
+                                    {% if form.password1.field.required %}<span class="required">*</span>{% endif %}
+                                </label>
+                                {{ form.password1 }}
+                                {% if form.password1.help_text %}
+                                    <small class="help-text">{{ form.password1.help_text }}</small>
+                                {% endif %}
+                                {% if form.password1.errors %}
+                                    <div class="form-errors">
+                                        {{ form.password1.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.password2.id_for_label }}">
+                                    {{ form.password2.label }}
+                                    {% if form.password2.field.required %}<span class="required">*</span>{% endif %}
+                                </label>
+                                {{ form.password2 }}
+                                {% if form.password2.help_text %}
+                                    <small class="help-text">{{ form.password2.help_text }}</small>
+                                {% endif %}
+                                {% if form.password2.errors %}
+                                    <div class="form-errors">
+                                        {{ form.password2.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i>
+                                {% trans "立即注册" %}
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="auth-footer">
+                        <p>
+                            {% trans "已有账户？" %}
+                            <a href="{% url 'users:login' %}">{% trans "立即登录" %}</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 表单增强
+    document.addEventListener('DOMContentLoaded', function() {
+        // 为所有表单控件添加样式类
+        const formControls = document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+        formControls.forEach(function(control) {
+            control.classList.add('form-control');
+        });
+        
+        // 实时密码强度检测
+        const password1 = document.querySelector('#id_password1');
+        if (password1) {
+            password1.addEventListener('input', function() {
+                // 这里可以添加密码强度检测逻辑
+                console.log('Password strength check...');
+            });
+        }
+    });
+</script>
+{% endblock %}

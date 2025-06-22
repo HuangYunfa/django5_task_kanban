@@ -11,6 +11,24 @@ class CustomUserCreationForm(UserCreationForm):
     """
     自定义用户注册表单
     """
+    first_name = forms.CharField(
+        label=_('名'),
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': _('请输入您的名')
+        })
+    )
+    last_name = forms.CharField(
+        label=_('姓'),
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': _('请输入您的姓')
+        })
+    )
     email = forms.EmailField(
         label=_('邮箱地址'),
         required=True,
@@ -47,7 +65,7 @@ class CustomUserCreationForm(UserCreationForm):
     
     class Meta:
         model = User
-        fields = ('username', 'email', 'nickname', 'password1', 'password2')
+        fields = ('username', 'first_name', 'last_name', 'email', 'nickname', 'password1', 'password2')
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'form-control',

@@ -1,0 +1,143 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "邮箱验证" %}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .email-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .email-body {
+            padding: 40px 30px;
+        }
+        .welcome-text {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .verification-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        .verification-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .verification-link {
+            word-break: break-all;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .email-footer {
+            background-color: #f8f9fa;
+            color: #666;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .security-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .security-notice h3 {
+            color: #856404;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .security-notice p {
+            color: #856404;
+            margin-bottom: 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>{% trans "验证您的邮箱地址" %}</h1>
+        </div>
+        
+        <div class="email-body">
+            <div class="welcome-text">
+                <p>{% trans "亲爱的" %} {{ user.get_full_name|default:user.username }}，</p>
+                
+                <p>{% trans "感谢您注册我们的任务看板系统！为了确保您的账户安全，请点击下面的按钮来验证您的邮箱地址。" %}</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{ protocol }}://{{ domain }}{% url 'users:email_verify' uidb64=uid token=token %}" class="verification-button">
+                    {% trans "验证邮箱地址" %}
+                </a>
+            </div>
+            
+            <p>{% trans "如果上面的按钮无法点击，请复制下面的链接到浏览器地址栏中：" %}</p>
+            
+            <div class="verification-link">
+                {{ protocol }}://{{ domain }}{% url 'users:email_verify' uidb64=uid token=token %}
+            </div>
+            
+            <div class="security-notice">
+                <h3>{% trans "安全提醒" %}</h3>
+                <p>{% trans "如果您没有在我们的网站上注册账户，请忽略此邮件。此验证链接将在24小时后失效。" %}</p>
+            </div>
+            
+            <p>{% trans "验证完成后，您就可以：" %}</p>
+            <ul>
+                <li>{% trans "创建和管理您的项目看板" %}</li>
+                <li>{% trans "与团队成员协作" %}</li>
+                <li>{% trans "跟踪任务进度" %}</li>
+                <li>{% trans "接收重要通知" %}</li>
+            </ul>
+            
+            <p>{% trans "如有任何问题，请随时联系我们的支持团队。" %}</p>
+            
+            <p>{% trans "祝好，" %}<br>
+            {% trans "任务看板团队" %}</p>
+        </div>
+        
+        <div class="email-footer">
+            <p>&copy; 2024 {% trans "任务看板系统" %}. {% trans "保留所有权利。" %}</p>
+            <p>{% trans "这是一封自动发送的邮件，请勿回复。" %}</p>
+        </div>
+    </div>
+</body>
+</html>
