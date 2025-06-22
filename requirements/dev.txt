@@ -12,6 +12,10 @@ django-extensions>=3.2.0
 ipython>=8.17.0
 werkzeug>=3.0.0  # for runserver_plus
 
+# UI Testing tools
+playwright>=1.40.0
+pytest-playwright>=0.4.3
+
 # Hot reload tools
 watchdog>=3.0.0
 watchfiles>=0.21.0

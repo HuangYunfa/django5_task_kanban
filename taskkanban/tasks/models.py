@@ -5,6 +5,12 @@ from django.core.validators import MinLengthValidator, MaxValueValidator, MinVal
 from django.utils import timezone
 import uuid
 
+# 导入工作流相关模型
+from .workflow_models import (
+    WorkflowStatus, WorkflowTransition, TaskStatusHistory, 
+    WorkflowRule, WorkflowRuleExecution
+)
+
 User = get_user_model()
 
 

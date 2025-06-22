@@ -272,13 +272,24 @@
             <!-- 基本信息 -->
             <div class="task-sidebar">
                 <h6>{% trans "基本信息" %}</h6>
-                
-                <div class="mb-3">
+                  <div class="mb-3">
                     <strong>{% trans "状态" %}</strong>
-                    <div class="mt-1">
+                    <div class="mt-1 d-flex justify-content-between align-items-center">
                         <span class="task-status-badge status-{{ task.status }}">
                             {{ task.get_status_display }}
                         </span>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="showStatusChangeModal()" 
+                                    title="{% trans '变更状态' %}">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                            <a href="{% url 'tasks:status_history' task.board.slug task.pk %}" 
+                               class="btn btn-outline-secondary btn-sm" 
+                               title="{% trans '查看状态历史' %}">
+                                <i class="fas fa-history"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -637,8 +648,137 @@ function showMessage(message, type = 'info') {
     setTimeout(() => {
         if (messageEl.parentNode) {
             messageEl.parentNode.removeChild(messageEl);
+        }    }, 3000);
+}
+
+// 状态变更相关函数
+function showStatusChangeModal() {
+    // 创建模态框HTML
+    const modalHTML = `
+        <div class="modal fade" id="statusChangeModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-exchange-alt me-2"></i>
+                            {% trans "变更任务状态" %}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="statusChangeForm">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="newStatus" class="form-label">{% trans "选择新状态" %}</label>
+                                <select class="form-select" id="newStatus" name="new_status" required>
+                                    <option value="">{% trans "请选择..." %}</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="changeComment" class="form-label">{% trans "变更备注" %}</label>
+                                <textarea class="form-control" id="changeComment" name="comment" rows="3" 
+                                         placeholder="{% trans '记录此次状态变更的原因或说明（可选）' %}"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            {% trans "取消" %}
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="submitStatusChange()">
+                            <i class="fas fa-save me-1"></i>
+                            {% trans "确认变更" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除已存在的模态框
+    const existingModal = document.getElementById('statusChangeModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 添加新模态框
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // 加载可用状态
+    loadAvailableStatuses();
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('statusChangeModal'));
+    modal.show();
+}
+
+async function loadAvailableStatuses() {
+    try {
+        const response = await fetch(`/tasks/{{ task.pk }}/available-statuses/`);
+        const data = await response.json();
+        
+        const select = document.getElementById('newStatus');
+        select.innerHTML = '<option value="">{% trans "请选择..." %}</option>';
+        
+        if (data.success && data.statuses) {
+            data.statuses.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status.id;
+                option.textContent = status.display_name;
+                option.style.color = status.color;
+                select.appendChild(option);
+            });
         }
-    }, 3000);
+    } catch (error) {
+        console.error('Error loading statuses:', error);
+        showMessage('加载状态列表失败', 'error');
+    }
+}
+
+async function submitStatusChange() {
+    const form = document.getElementById('statusChangeForm');
+    const formData = new FormData(form);
+    
+    const newStatus = formData.get('new_status');
+    if (!newStatus) {
+        showMessage('请选择新状态', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/tasks/{{ task.pk }}/change-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                new_status: newStatus,
+                comment: formData.get('comment')
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('statusChangeModal'));
+            modal.hide();
+            
+            // 显示成功消息
+            showMessage('状态变更成功', 'success');
+            
+            // 刷新页面以更新状态显示
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showMessage('状态变更失败: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error changing status:', error);
+        showMessage('变更状态时发生错误', 'error');
+    }
 }
 </script>
 {% endblock %}

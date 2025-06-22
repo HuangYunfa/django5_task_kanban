@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "任务状态历史" %} - {{ task.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.history-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.history-timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.history-item {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.history-item::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 25px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--status-color, #6c757d);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px #e9ecef;
+}
+
+.history-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.status-change {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 500;
+    color: white;
+}
+
+.change-arrow {
+    color: #6c757d;
+    font-size: 1.2em;
+}
+
+.change-meta {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+.change-comment {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 10px;
+    border-left: 3px solid #007bff;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.empty-history {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-history i {
+    font-size: 3em;
+    margin-bottom: 20px;
+    color: #dee2e6;
+}
+
+.task-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.current-status {
+    background: rgba(255,255,255,0.2);
+    padding: 10px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- 任务头部信息 -->
+            <div class="task-header">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h1 class="h3 mb-2">
+                            <i class="fas fa-history"></i>
+                            {% trans "任务状态历史" %}
+                        </h1>
+                        <h2 class="h5 mb-3">{{ task.title }}</h2>
+                        <div class="current-status">
+                            <i class="fas fa-circle" style="color: {{ task.status_color|default:'#6c757d' }}"></i>
+                            {% trans "当前状态" %}: {{ task.get_status_display }}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <a href="{% url 'tasks:detail' task.board.slug task.pk %}" class="btn btn-outline-light">
+                            <i class="fas fa-arrow-left"></i> {% trans "返回任务" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- 状态历史时间线 -->
+            {% if status_history %}
+                <div class="history-timeline">
+                    {% for history in status_history %}
+                        <div class="history-item" style="--status-color: {{ history.to_status_color|default:'#6c757d' }}">
+                            <div class="history-header">
+                                <div class="status-change">
+                                    {% if history.from_status %}
+                                        <span class="status-badge" style="background-color: {{ history.from_status_color|default:'#6c757d' }}">
+                                            {{ history.from_status }}
+                                        </span>
+                                        <span class="change-arrow">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </span>
+                                    {% endif %}
+                                    <span class="status-badge" style="background-color: {{ history.to_status_color|default:'#28a745' }}">
+                                        {{ history.to_status }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="change-meta">
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if history.changed_by.profile.avatar %}
+                                        <img src="{{ history.changed_by.profile.avatar.url }}" 
+                                             class="user-avatar" alt="{{ history.changed_by.get_full_name|default:history.changed_by.username }}">
+                                    {% else %}
+                                        <div class="user-avatar bg-secondary d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ history.changed_by.get_full_name|default:history.changed_by.username }}</strong>
+                                        {% trans "在" %} {{ history.changed_at|date:"Y年m月d日 H:i" }} {% trans "更改了状态" %}
+                                    </div>
+                                </div>
+
+                                {% if history.transition %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-route"></i>
+                                            {% trans "转换规则" %}: {{ history.transition.name }}
+                                        </small>
+                                    </div>
+                                {% endif %}
+
+                                {% if history.duration %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i>
+                                            {% trans "在上一状态停留" %}: {{ history.duration }}
+                                        </small>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            {% if history.comment %}
+                                <div class="change-comment">
+                                    <i class="fas fa-comment"></i>
+                                    <strong>{% trans "备注" %}:</strong>
+                                    <p class="mb-0 mt-2">{{ history.comment|linebreaksbr }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- 统计信息 -->
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ status_history|length }}</h5>
+                                <p class="card-text text-muted">{% trans "状态变更次数" %}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ task.created_at|timesince }}</h5>
+                                <p class="card-text text-muted">{% trans "任务创建时间" %}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    {% if task.updated_at %}
+                                        {{ task.updated_at|timesince }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </h5>
+                                <p class="card-text text-muted">{% trans "最后更新时间" %}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-history">
+                    <i class="fas fa-history"></i>
+                    <h4>{% trans "暂无状态变更记录" %}</h4>
+                    <p>{% trans "此任务尚未发生状态变更。" %}</p>
+                    <a href="{% url 'tasks:detail' task.board.slug task.pk %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> {% trans "返回任务详情" %}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 为历史项目添加动画效果
+    const historyItems = document.querySelectorAll('.history-item');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '0';
+                entry.target.style.transform = 'translateY(20px)';
+                entry.target.style.transition = 'opacity 0.6s, transform 0.6s';
+                
+                setTimeout(() => {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }, 100);
+                
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+    
+    historyItems.forEach(item => {
+        observer.observe(item);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "工作流状态管理" %} - {{ board.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/workflow.css' %}">
+<style>
+.status-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--status-color);
+}
+
+.status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.status-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.status-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.workflow-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.transition-list {
+    margin-top: 15px;
+}
+
+.transition-item {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.badge-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.badge-initial {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-final {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3em;
+    margin-bottom: 20px;
+    color: #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- 页面头部 -->
+            <div class="workflow-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-2">
+                            <i class="fas fa-project-diagram"></i>
+                            {% trans "工作流状态管理" %}
+                        </h1>
+                        <p class="mb-0">{{ board.name }} - {% trans "自定义任务状态流程" %}</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'tasks:workflow_status_create' board.slug %}" class="btn btn-light">
+                            <i class="fas fa-plus"></i> {% trans "添加状态" %}
+                        </a>
+                        <a href="{% url 'boards:detail' board.slug %}" class="btn btn-outline-light">
+                            <i class="fas fa-arrow-left"></i> {% trans "返回看板" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- 状态列表 -->
+            {% if workflow_statuses %}
+                <div class="row">
+                    {% for status in workflow_statuses %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="status-card" style="--status-color: {{ status.color }}">
+                                <div class="status-header">
+                                    <div class="d-flex align-items-center">
+                                        <span class="status-color" style="background-color: {{ status.color }}"></span>
+                                        <h5 class="mb-0">{{ status.display_name }}</h5>
+                                    </div>
+                                    <div class="status-actions">
+                                        <a href="{% url 'tasks:workflow_status_edit' board.slug status.pk %}" 
+                                           class="btn btn-sm btn-outline-secondary" title="{% trans '编辑' %}">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'tasks:workflow_status_delete' board.slug status.pk %}" 
+                                           class="btn btn-sm btn-outline-danger" title="{% trans '删除' %}">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="status-details">
+                                    <p class="text-muted mb-2">
+                                        <small>{% trans "状态名称" %}: <code>{{ status.name }}</code></small>
+                                    </p>
+                                    
+                                    {% if status.is_initial %}
+                                        <span class="badge badge-initial">{% trans "初始状态" %}</span>
+                                    {% endif %}
+                                    {% if status.is_final %}
+                                        <span class="badge badge-final">{% trans "最终状态" %}</span>
+                                    {% endif %}
+                                    {% if not status.is_active %}
+                                        <span class="badge bg-secondary">{% trans "已禁用" %}</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- 转换规则 -->
+                                {% if status.outgoing_transitions.exists %}
+                                    <div class="transition-list">
+                                        <h6 class="text-muted">{% trans "可转换到" %}:</h6>
+                                        {% for transition in status.outgoing_transitions.all %}
+                                            <div class="transition-item">
+                                                <span class="status-color" style="background-color: {{ transition.to_status.color }}"></span>
+                                                {{ transition.to_status.display_name }}
+                                                <small class="text-muted">({{ transition.name }})</small>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-project-diagram"></i>
+                    <h4>{% trans "还没有配置工作流状态" %}</h4>
+                    <p>{% trans "为您的看板创建自定义的任务状态流程，提高工作效率。" %}</p>
+                    <a href="{% url 'tasks:workflow_status_create' board.slug %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> {% trans "创建第一个状态" %}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/task-workflow.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化工作流状态管理
+        if (typeof TaskWorkflow !== 'undefined') {
+            const workflow = new TaskWorkflow();
+            workflow.init();
+        }
+    });
+</script>
+{% endblock %}
