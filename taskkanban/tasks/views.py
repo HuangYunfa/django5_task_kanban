@@ -10,10 +10,12 @@ from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from django.db.models import Q, Count, Prefetch
+from django.db.models import Q, Count, Prefetch, F
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
+from django.db import transaction
+import json
 
 from .models import Task, TaskComment, TaskAttachment
 from .forms import (
@@ -34,36 +36,52 @@ class TaskAccessMixin:
         if task.creator == user:
             return True
         
-        # 任务分配者
+        # 任务分配给用户
         if task.assignees.filter(id=user.id).exists():
             return True
-        
-        # 看板权限
+          # 看板成员
         board = task.board
         if board.owner == user:
             return True
+              # 团队成员权限
+        if board.team:
+            team_membership = board.team.memberships.filter(user=user, status='active').first()
+            if team_membership:
+                return True
         
-        # 看板成员
-        if board.members.filter(user=user).exists():
+        # 看板成员权限
+        board_membership = board.members.filter(user=user, is_active=True).first()
+        if board_membership:
             return True
-        
-        # 团队成员
-        if board.team and board.team.memberships.filter(user=user).exists():
-            return True
-        
-        # 公开看板
+              # 公开看板的读取权限
         if board.visibility == 'public':
             return True
-        
+            
         return False
-    
-    def dispatch(self, request, *args, **kwargs):
-        if hasattr(self, 'get_object'):
-            obj = self.get_object()
-            if not self.has_task_access(obj, request.user):
-                messages.error(request, _('您没有权限访问此任务'))
-                return redirect('boards:list')
-        return super().dispatch(request, *args, **kwargs)
+
+    def has_task_edit_access(self, task, user):
+        """检查用户是否有任务编辑权限"""
+        # 任务创建者
+        if task.creator == user:
+            return True
+        
+        # 看板创建者
+        board = task.board
+        if board.owner == user:
+            return True
+            
+        # 团队管理员
+        if board.team:
+            team_membership = board.team.memberships.filter(user=user, role__in=['admin', 'owner'], status='active').first()
+            if team_membership:
+                return True
+        
+        # 看板管理员
+        board_membership = board.members.filter(user=user, role='admin', is_active=True).first()
+        if board_membership:
+            return True
+            
+        return False
 
 
 class TaskListView(LoginRequiredMixin, ListView):
@@ -71,61 +89,70 @@ class TaskListView(LoginRequiredMixin, ListView):
     model = Task
     template_name = 'tasks/list.html'
     context_object_name = 'tasks'
-    paginate_by = 20
+    paginate_by = 12
     
     def get_queryset(self):
-        user = self.request.user
-        
-        # 基础查询：用户可以访问的任务
         queryset = Task.objects.filter(
-            Q(creator=user) |  # 自己创建的
-            Q(assignees=user) |  # 分配给自己的
-            Q(board__owner=user) |  # 自己的看板
-            Q(board__members__user=user) |  # 看板成员
-            Q(board__team__memberships__user=user) |  # 团队看板
-            Q(board__visibility='public')  # 公开看板
-        ).distinct().select_related(
-            'creator', 'board', 'board_list'
+            board__in=self.get_accessible_boards()
+        ).select_related(
+            'board', 'board_list', 'creator'
         ).prefetch_related(
-            'assignees', 'labels'
-        )
+            'labels', 'assignees'
+        ).order_by('-created_at')
         
-        # 处理搜索和过滤
-        form = TaskSearchForm(self.request.GET, board=None)
-        if form.is_valid():
-            q = form.cleaned_data.get('q')
+        # 搜索过滤
+        search_form = TaskSearchForm(self.request.GET)
+        if search_form.is_valid():
+            q = search_form.cleaned_data.get('q')
             if q:
                 queryset = queryset.filter(
-                    Q(title__icontains=q) |
+                    Q(title__icontains=q) | 
                     Q(description__icontains=q)
                 )
             
-            status = form.cleaned_data.get('status')
+            status = search_form.cleaned_data.get('status')
             if status:
-                queryset = queryset.filter(status__in=status)
-            
-            priority = form.cleaned_data.get('priority')
+                queryset = queryset.filter(status=status)
+                
+            priority = search_form.cleaned_data.get('priority')
             if priority:
-                queryset = queryset.filter(priority__in=priority)
-            
-            assignee = form.cleaned_data.get('assignee')
+                queryset = queryset.filter(priority=priority)
+                
+            assignee = search_form.cleaned_data.get('assignee')
             if assignee:
                 queryset = queryset.filter(assignees=assignee)
-        
-        return queryset.order_by('-updated_at')
+                
+            board = search_form.cleaned_data.get('board')
+            if board:
+                queryset = queryset.filter(board=board)        
+        return queryset
+    
+    def get_accessible_boards(self):
+        """获取用户可访问的看板"""
+        user = self.request.user
+        return Board.objects.filter(
+            Q(owner=user) |  # 自己创建的看板
+            Q(team__memberships__user=user, team__memberships__status='active') |  # 团队成员
+            Q(members__user=user, members__is_active=True) |  # 看板成员
+            Q(visibility='public')  # 公开看板
+        ).distinct()
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['search_form'] = TaskSearchForm(self.request.GET)
         
         # 统计信息
-        user = self.request.user
-        context['total_tasks'] = self.get_queryset().count()
-        context['my_tasks'] = self.get_queryset().filter(assignees=user).count()
-        context['overdue_tasks'] = self.get_queryset().filter(
-            due_date__lt=timezone.now(),
-            status__in=['todo', 'in_progress']
-        ).count()
+        accessible_boards = self.get_accessible_boards()
+        all_tasks = Task.objects.filter(board__in=accessible_boards)
+        
+        context.update({
+            'search_form': TaskSearchForm(self.request.GET, user=self.request.user),
+            'total_tasks': all_tasks.count(),
+            'my_tasks': all_tasks.filter(assignees=self.request.user).count(),
+            'overdue_tasks': all_tasks.filter(
+                due_date__lt=timezone.now(),
+                status__in=['todo', 'in_progress']
+            ).count(),
+        })
         
         return context
 
@@ -335,3 +362,332 @@ class TaskMoveView(LoginRequiredMixin, TaskAccessMixin, View):
                 'success': False,
                 'error': 'Invalid list or position'
             }, status=400)
+
+
+class TaskBatchOperationView(LoginRequiredMixin, View):
+    """任务批量操作API"""
+    
+    def post(self, request):
+        """批量操作处理"""
+        try:
+            # 尝试解析JSON数据
+            if request.content_type == 'application/json':
+                import json
+                data = json.loads(request.body)
+                task_ids = data.get('task_ids', [])
+                operation = data.get('action') or data.get('operation')
+            else:
+                # 处理表单数据
+                task_ids = request.POST.getlist('task_ids')
+                operation = request.POST.get('action') or request.POST.get('operation')
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data'
+            }, status=400)
+        
+        if not task_ids:
+            return JsonResponse({
+                'success': False,
+                'error': 'No tasks selected'
+            }, status=400)
+        
+        if not operation:
+            return JsonResponse({
+                'success': False,
+                'error': 'No operation specified'
+            }, status=400)
+        
+        # 验证任务权限
+        tasks = []
+        for task_id in task_ids:
+            try:
+                task = Task.objects.get(id=task_id)
+                if not self.has_task_edit_access(task, request.user):
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'No permission to edit task {task_id}'
+                    }, status=403)
+                tasks.append(task)
+            except Task.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Task {task_id} not found'
+                }, status=404)
+        
+        # 执行批量操作
+        try:
+            with transaction.atomic():
+                if operation == 'delete':
+                    count = len(tasks)
+                    for task in tasks:
+                        task.is_archived = True  # 软删除
+                        task.save(update_fields=['is_archived', 'updated_at'])
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Successfully deleted {count} tasks'
+                    })
+                
+                elif operation == 'change_status':
+                    if request.content_type == 'application/json':
+                        new_status = data.get('new_status')
+                    else:
+                        new_status = request.POST.get('new_status')
+                    
+                    if new_status not in dict(Task.STATUS_CHOICES):
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Invalid status'
+                        }, status=400)
+                    
+                    count = 0
+                    for task in tasks:
+                        task.status = new_status
+                        task.save(update_fields=['status', 'updated_at'])
+                        count += 1
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Successfully updated {count} tasks'
+                    })
+                
+                elif operation == 'change_priority':
+                    if request.content_type == 'application/json':
+                        new_priority = data.get('new_priority')
+                    else:
+                        new_priority = request.POST.get('new_priority')
+                        
+                    if new_priority not in dict(Task.PRIORITY_CHOICES):
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Invalid priority'
+                        }, status=400)
+                    
+                    count = 0
+                    for task in tasks:
+                        task.priority = new_priority
+                        task.save(update_fields=['priority', 'updated_at'])
+                        count += 1
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Successfully updated {count} tasks'
+                    })
+                
+                elif operation == 'assign':
+                    if request.content_type == 'application/json':
+                        assignee_id = data.get('assignee_id')
+                    else:
+                        assignee_id = request.POST.get('assignee_id')
+                    
+                    if assignee_id:
+                        try:
+                            assignee = User.objects.get(id=assignee_id)
+                        except User.DoesNotExist:
+                            return JsonResponse({
+                                'success': False,
+                                'error': 'Assignee not found'
+                            }, status=404)
+                    else:
+                        assignee = None
+                    
+                    count = 0
+                    for task in tasks:
+                        if assignee:
+                            task.assignees.add(assignee)
+                        else:
+                            task.assignees.clear()
+                        count += 1
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Successfully assigned {count} tasks'
+                    })
+                
+                elif operation == 'move_to_list':
+                    if request.content_type == 'application/json':
+                        new_list_id = data.get('new_list_id')
+                    else:
+                        new_list_id = request.POST.get('new_list_id')
+                    
+                    if not new_list_id:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'No target list specified'
+                        }, status=400)
+                    
+                    try:
+                        new_list = BoardList.objects.get(id=new_list_id)
+                    except BoardList.DoesNotExist:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Target list not found'
+                        }, status=404)
+                    
+                    # 验证所有任务都属于同一个看板
+                    board = tasks[0].board
+                    if not all(task.board == board for task in tasks):
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'All tasks must belong to the same board'
+                        }, status=400)
+                    
+                    # 验证目标列表属于同一个看板  
+                    if new_list.board != board:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Target list must belong to the same board'
+                        }, status=400)
+                    
+                    count = 0
+                    for task in tasks:
+                        task.board_list = new_list
+                        task.save(update_fields=['board_list', 'updated_at'])
+                        count += 1
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Successfully moved {count} tasks'
+                    })
+                
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Unknown operation: {operation}'
+                    }, status=400)
+                
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
+    def has_task_edit_access(self, task, user):
+        """检查用户是否有编辑任务的权限"""
+        # 任务创建者
+        if task.creator == user:
+            return True
+        
+        # 任务被分配人
+        if task.assignees.filter(id=user.id).exists():
+            return True
+            
+        # 看板所有者
+        if task.board.owner == user:
+            return True
+        
+        # 看板管理员
+        board_membership = task.board.members.filter(user=user, role='admin', is_active=True).first()
+        if board_membership:
+            return True
+            
+        return False
+
+
+class TaskSortView(LoginRequiredMixin, View):
+    """任务拖拽排序API"""
+    
+    def post(self, request):
+        """处理任务拖拽排序"""
+        try:
+            data = json.loads(request.body)
+            task_id = data.get('task_id')
+            new_list_id = data.get('new_list_id')
+            new_position = data.get('new_position', 0)
+            old_list_id = data.get('old_list_id')
+            
+            # 获取任务
+            task = get_object_or_404(Task, id=task_id)
+            
+            # 检查权限
+            if not self.has_task_edit_access(task, request.user):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Permission denied'
+                }, status=403)
+            
+            # 验证目标列表
+            new_list = get_object_or_404(BoardList, id=new_list_id)
+            if new_list.board != task.board:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Cannot move task to different board'
+                }, status=400)
+            
+            with transaction.atomic():
+                old_list = task.board_list
+                
+                # 如果是跨列表移动
+                if new_list_id != old_list_id:
+                    # 更新原列表中其他任务的位置
+                    old_list.tasks.filter(
+                        position__gt=task.position
+                    ).update(position=F('position') - 1)
+                    
+                    # 更新目标列表中任务的位置
+                    new_list.tasks.filter(
+                        position__gte=new_position
+                    ).update(position=F('position') + 1)
+                    
+                    # 更新任务的列表和位置
+                    task.board_list = new_list
+                    task.position = new_position
+                else:
+                    # 同一列表内排序
+                    if new_position > task.position:
+                        # 向下移动
+                        new_list.tasks.filter(
+                            position__gt=task.position,
+                            position__lte=new_position
+                        ).update(position=F('position') - 1)
+                    else:
+                        # 向上移动
+                        new_list.tasks.filter(
+                            position__gte=new_position,
+                            position__lt=task.position
+                        ).update(position=F('position') + 1)
+                    
+                    task.position = new_position
+                
+                task.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'task_id': task_id,
+                    'new_list_id': new_list_id,
+                    'new_position': new_position
+                })
+        
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
+    def has_task_edit_access(self, task, user):
+        """检查用户是否有任务编辑权限"""
+        # 任务创建者
+        if task.creator == user:
+            return True
+          # 看板创建者
+        board = task.board
+        if board.owner == user:
+            return True
+            
+        # 团队管理员
+        if board.team:
+            team_membership = board.team.memberships.filter(user=user, role__in=['admin', 'owner'], status='active').first()
+            if team_membership:
+                return True
+        
+        # 看板管理员
+        board_membership = board.members.filter(user=user, role='admin', is_active=True).first()
+        if board_membership:
+            return True
+            
+        return False

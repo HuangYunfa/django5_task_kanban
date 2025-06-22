@@ -537,6 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
             onEnd: function(evt) {
                 // TODO: 发送AJAX请求更新列表位置
                 console.log('List moved from', evt.oldIndex, 'to', evt.newIndex);
+                // 这里可以实现列表排序的API调用
             }
         });
         
@@ -547,11 +548,82 @@ document.addEventListener('DOMContentLoaded', function() {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 onEnd: function(evt) {
-                    // TODO: 发送AJAX请求更新任务位置
-                    console.log('Task moved from list', evt.from.dataset.listId, 'to', evt.to.dataset.listId);
+                    // 发送AJAX请求更新任务位置
+                    const taskId = evt.item.dataset.taskId;
+                    const newListId = evt.to.dataset.listId;
+                    const oldListId = evt.from.dataset.listId;
+                    const newPosition = evt.newIndex;
+                    
+                    console.log('Task moved:', {
+                        taskId: taskId,
+                        oldListId: oldListId,
+                        newListId: newListId,
+                        newPosition: newPosition
+                    });
+                    
+                    // 调用任务排序API
+                    fetch('{% url "tasks:sort" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify({
+                            task_id: taskId,
+                            new_list_id: newListId,
+                            old_list_id: oldListId,
+                            new_position: newPosition
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            console.error('Failed to move task:', data.error);
+                            // 如果移动失败，恢复原来的位置
+                            if (oldListId !== newListId) {
+                                evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex]);
+                            } else {
+                                evt.to.insertBefore(evt.item, evt.to.children[evt.oldIndex]);
+                            }
+                            alert('移动任务失败: ' + data.error);
+                        } else {
+                            console.log('Task moved successfully');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error moving task:', error);
+                        // 如果出错，恢复原来的位置
+                        if (oldListId !== newListId) {
+                            evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex]);
+                        } else {
+                            evt.to.insertBefore(evt.item, evt.to.children[evt.oldIndex]);
+                        }
+                        alert('移动任务时发生错误，请重试');
+                    });
                 }
             });
         });
+        
+        // 添加拖拽样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .sortable-ghost {
+                opacity: 0.5;
+                background: #f8f9fa;
+                border: 2px dashed #dee2e6;
+            }
+            
+            .task-card {
+                cursor: move;
+            }
+            
+            .task-card:hover {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                transform: translateY(-1px);
+                transition: all 0.2s ease;
+            }
+        `;
+        document.head.appendChild(style);
     }
 });
 </script>

@@ -5,9 +5,10 @@ Tasks应用表单
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from .models import Task, TaskComment, TaskAttachment
-from boards.models import BoardList, BoardLabel
+from boards.models import Board, BoardList, BoardLabel
 
 User = get_user_model()
 
@@ -247,12 +248,31 @@ class TaskSearchForm(forms.Form):
             'class': 'form-select'
         }),
         label=_('分配给'),
-        empty_label=_('所有人')
+        empty_label=_('所有人')    )
+    
+    board = forms.ModelChoiceField(
+        required=False,
+        queryset=Board.objects.none(),  # 默认为空queryset
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label=_('看板'),
+        empty_label=_('所有看板')
     )
     
     def __init__(self, *args, **kwargs):
         board = kwargs.pop('board', None)
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        if user:
+            # 设置用户可见的看板
+            self.fields['board'].queryset = Board.objects.filter(
+                Q(owner=user) |  # 自己创建的看板
+                Q(team__memberships__user=user, team__memberships__status='active') |  # 团队成员
+                Q(members__user=user, members__is_active=True) |  # 看板成员
+                Q(visibility='public')  # 公开看板
+            ).distinct()
         
         if board:
             board_members = board.members.values_list('user', flat=True)

@@ -118,8 +118,7 @@
             <div class="stat-label">{% trans "逾期任务" %}</div>
         </div>
     </div>
-    
-    <!-- 搜索和过滤 -->
+      <!-- 搜索和过滤 -->
     <div class="filters-section">
         <form method="get" class="row g-3">
             <div class="col-md-3">
@@ -151,11 +150,67 @@
         </form>
     </div>
     
+    <!-- 批量操作工具栏 -->
+    <div class="batch-toolbar" id="batchToolbar" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-3">
+            <div>
+                <span id="selectedCount">0</span> {% trans "个任务已选中" %}
+            </div>
+            <div>
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                        {% trans "批量操作" %}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <button class="dropdown-item" onclick="batchChangeStatus()">
+                                <i class="fas fa-exchange-alt me-1"></i>
+                                {% trans "变更状态" %}
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="batchChangePriority()">
+                                <i class="fas fa-flag me-1"></i>
+                                {% trans "变更优先级" %}
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="batchMoveToList()">
+                                <i class="fas fa-arrows-alt me-1"></i>
+                                {% trans "移动到列表" %}
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="batchAssignToUser()">
+                                <i class="fas fa-user-plus me-1"></i>
+                                {% trans "分配给用户" %}
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <button class="dropdown-item text-danger" onclick="batchDelete()">
+                                <i class="fas fa-trash me-1"></i>
+                                {% trans "删除任务" %}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="clearSelection()">
+                    {% trans "取消选择" %}
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- 任务列表 -->
     <div class="row">
         {% for task in tasks %}
         <div class="col-md-6 col-lg-4">
-            <div class="task-card" onclick="window.location.href='{% url 'tasks:detail' task.pk %}'">
+            <div class="task-card" data-task-id="{{ task.pk }}">
+                <div class="task-select">
+                    <input type="checkbox" class="form-check-input task-checkbox" value="{{ task.pk }}">
+                </div>
+                <div class="task-content" onclick="window.location.href='{% url 'tasks:detail' task.pk %}'">
                 {% if task.labels.exists %}
                 <div class="task-labels">
                     {% for label in task.labels.all %}
@@ -207,13 +262,13 @@
                         {% endif %}
                     </div>
                 </div>
-                
-                <div class="mt-2 small text-muted">
+                  <div class="mt-2 small text-muted">
                     <span>{{ task.board.name }}</span>
                     <span class="mx-1">•</span>
                     <span>{{ task.board_list.name }}</span>
                 </div>
-            </div>
+                </div> <!-- task-content 结束 -->
+            </div> <!-- task-card 结束 -->
         </div>
         {% empty %}
         <div class="col-12">
@@ -269,5 +324,192 @@
 document.querySelectorAll('.task-card').forEach(function(card) {
     card.style.cursor = 'pointer';
 });
+
+// 批量操作功能
+let selectedTasks = new Set();
+
+// 监听复选框变化
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('task-checkbox')) {
+        const taskId = e.target.value;
+        const toolbar = document.getElementById('batchToolbar');
+        const countSpan = document.getElementById('selectedCount');
+        
+        if (e.target.checked) {
+            selectedTasks.add(taskId);
+        } else {
+            selectedTasks.delete(taskId);
+        }
+        
+        countSpan.textContent = selectedTasks.size;
+        
+        if (selectedTasks.size > 0) {
+            toolbar.style.display = 'block';
+        } else {
+            toolbar.style.display = 'none';
+        }
+    }
+});
+
+// 清除选择
+function clearSelection() {
+    selectedTasks.clear();
+    document.querySelectorAll('.task-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    document.getElementById('batchToolbar').style.display = 'none';
+}
+
+// 批量操作函数
+function performBatchOperation(operation, extraData = {}) {
+    if (selectedTasks.size === 0) {
+        alert('请先选择要操作的任务');
+        return;
+    }
+    
+    const formData = new FormData();
+    selectedTasks.forEach(taskId => {
+        formData.append('task_ids', taskId);
+    });
+    formData.append('operation', operation);
+    
+    // 添加额外数据
+    Object.keys(extraData).forEach(key => {
+        formData.append(key, extraData[key]);
+    });
+    
+    fetch('{% url "tasks:batch_operation" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败，请重试');
+    });
+}
+
+// 批量变更状态
+function batchChangeStatus() {
+    const newStatus = prompt('请选择新状态:\ntodo - 待办\nin_progress - 进行中\nreview - 审核中\ndone - 已完成\nblocked - 已阻塞');
+    if (newStatus && ['todo', 'in_progress', 'review', 'done', 'blocked'].includes(newStatus)) {
+        performBatchOperation('change_status', { new_status: newStatus });
+    } else if (newStatus) {
+        alert('无效的状态值');
+    }
+}
+
+// 批量变更优先级
+function batchChangePriority() {
+    const newPriority = prompt('请选择新优先级:\nlow - 低优先级\nnormal - 普通\nhigh - 高优先级\nurgent - 紧急');
+    if (newPriority && ['low', 'normal', 'high', 'urgent'].includes(newPriority)) {
+        performBatchOperation('change_priority', { new_priority: newPriority });
+    } else if (newPriority) {
+        alert('无效的优先级值');
+    }
+}
+
+// 批量移动到列表
+function batchMoveToList() {
+    const newListId = prompt('请输入目标列表ID:');
+    if (newListId) {
+        performBatchOperation('move_to_list', { new_list_id: newListId });
+    }
+}
+
+// 批量分配给用户
+function batchAssignToUser() {
+    const userId = prompt('请输入用户ID:');
+    if (userId) {
+        performBatchOperation('assign_to_user', { user_id: userId });
+    }
+}
+
+// 批量删除
+function batchDelete() {
+    if (confirm('确定要删除选中的 ' + selectedTasks.size + ' 个任务吗？此操作不可撤销！')) {
+        performBatchOperation('delete');
+    }
+}
+
+// 防止任务卡片上的复选框点击事件冒泡
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('task-checkbox')) {
+        e.stopPropagation();
+    }
+});
+
+// 添加Ctrl+A全选功能
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'a' && e.target.tagName !== 'INPUT') {
+        e.preventDefault();
+        const checkboxes = document.querySelectorAll('.task-checkbox');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            const event = new Event('change');
+            cb.dispatchEvent(event);
+        });
+    }
+});
 </script>
+
+<style>
+.task-card {
+    position: relative;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.task-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #007bff;
+}
+
+.task-select {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+.task-content {
+    cursor: pointer;
+}
+
+.task-checkbox {
+    transform: scale(1.2);
+}
+
+.batch-toolbar {
+    animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
 {% endblock %}
