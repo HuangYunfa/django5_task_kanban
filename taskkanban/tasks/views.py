@@ -15,6 +15,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.core.exceptions import PermissionDenied
 import json
 
 from .models import Task, TaskComment, TaskAttachment
@@ -759,3 +760,44 @@ class TaskLabelUpdateView(LoginRequiredMixin, TaskAccessMixin, View):
             return True
             
         return False
+
+
+class TaskStatusHistoryView(LoginRequiredMixin, TaskAccessMixin, DetailView):
+    """任务状态历史视图"""
+    model = Task
+    template_name = 'tasks/task_status_history.html'
+    context_object_name = 'task'
+    pk_url_kwarg = 'task_pk'
+    
+    def get_object(self):
+        """获取任务对象"""
+        board_slug = self.kwargs.get('board_slug')
+        task_pk = self.kwargs.get('task_pk')
+        task = get_object_or_404(
+            Task.objects.select_related('board', 'creator'),
+            pk=task_pk,
+            board__slug=board_slug
+        )
+        
+        if not self.has_task_access(task, self.request.user):
+            raise PermissionDenied(_("您没有权限访问此任务"))
+        
+        return task
+    
+    def get_context_data(self, **kwargs):
+        """获取上下文数据"""
+        context = super().get_context_data(**kwargs)
+        task = self.get_object()
+        
+        # 获取状态历史记录
+        from .workflow_models import TaskStatusHistory
+        status_history = TaskStatusHistory.objects.filter(
+            task=task
+        ).select_related('user', 'from_status', 'to_status').order_by('-created_at')
+        
+        context.update({
+            'status_history': status_history,
+            'board': task.board,
+        })
+        
+        return context

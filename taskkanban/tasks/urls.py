@@ -27,6 +27,9 @@ urlpatterns = [
     path('batch-operation/', views.TaskBatchOperationView.as_view(), name='batch_operation'),
     path('sort/', views.TaskSortView.as_view(), name='sort'),
     
+    # 任务状态历史
+    path('<slug:board_slug>/<int:task_pk>/status-history/', views.TaskStatusHistoryView.as_view(), name='status_history'),
+    
     # 工作流相关URL
     path('workflow/', include('tasks.workflow_urls')),
 ]
