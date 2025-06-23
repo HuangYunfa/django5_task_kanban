@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}用户活动{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    我的活动
+                </h1>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="exportActivity()">
+                        <i class="fas fa-download me-1"></i>导出
+                    </button>
+                    <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>返回资料
+                    </a>
+                </div>
+            </div>
+
+            <!-- 活动统计 -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.total_tasks }}</h4>
+                                    <p class="mb-0">总任务数</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-tasks fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.completed_tasks }}</h4>
+                                    <p class="mb-0">已完成</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.pending_tasks }}</h4>
+                                    <p class="mb-0">进行中</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ stats.boards_joined }}</h4>
+                                    <p class="mb-0">参与看板</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clipboard fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选器 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="activityType" class="form-label">活动类型</label>
+                            <select id="activityType" class="form-select" onchange="applyFilters()">
+                                <option value="">全部活动</option>
+                                <option value="task_created">创建任务</option>
+                                <option value="task_updated">更新任务</option>
+                                <option value="task_completed">完成任务</option>
+                                <option value="board_created">创建看板</option>
+                                <option value="board_joined">加入看板</option>
+                                <option value="comment_added">添加评论</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateRange" class="form-label">时间范围</label>
+                            <select id="dateRange" class="form-select" onchange="applyFilters()">
+                                <option value="">全部时间</option>
+                                <option value="today">今天</option>
+                                <option value="week">本周</option>
+                                <option value="month">本月</option>
+                                <option value="quarter">本季度</option>
+                                <option value="year">今年</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="boardFilter" class="form-label">看板筛选</label>
+                            <select id="boardFilter" class="form-select" onchange="applyFilters()">
+                                <option value="">全部看板</option>
+                                {% for board in user_boards %}
+                                    <option value="{{ board.id }}">{{ board.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="searchActivity" class="form-label">搜索</label>
+                            <input type="text" id="searchActivity" class="form-control" placeholder="搜索活动..." onkeyup="applyFilters()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 活动时间线 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>活动时间线
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if activities %}
+                        <div class="timeline" id="activityTimeline">
+                            {% for activity in activities %}
+                                <div class="timeline-item" data-date="{{ activity.created_at|date:'Y-m-d' }}" data-type="{{ activity.activity_type }}">
+                                    <div class="timeline-marker">
+                                        {% if activity.activity_type == 'task_created' %}
+                                            <i class="fas fa-plus text-success"></i>
+                                        {% elif activity.activity_type == 'task_updated' %}
+                                            <i class="fas fa-edit text-warning"></i>
+                                        {% elif activity.activity_type == 'task_completed' %}
+                                            <i class="fas fa-check text-success"></i>
+                                        {% elif activity.activity_type == 'board_created' %}
+                                            <i class="fas fa-clipboard text-primary"></i>
+                                        {% elif activity.activity_type == 'board_joined' %}
+                                            <i class="fas fa-users text-info"></i>
+                                        {% elif activity.activity_type == 'comment_added' %}
+                                            <i class="fas fa-comment text-secondary"></i>
+                                        {% else %}
+                                            <i class="fas fa-circle text-muted"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">{{ activity.title }}</h6>
+                                        <p class="timeline-description text-muted">{{ activity.description }}
+                                        <small class="timeline-time d-block mt-1">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ activity.created_at|timesince }}前
+                                            {% if activity.board %}
+                                                · <a href="{% url 'boards:detail' activity.board.slug %}" class="text-decoration-none">{{ activity.board.name }}</a>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- 分页 -->
+                        {% if is_paginated %}
+                            <nav aria-label="活动分页" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1">&laquo; 首页</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+                                        </li>
+                                    {% endif %}
+
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">末页 &raquo;</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">暂无活动记录</h5>
+                            <p class="text-muted">您的活动记录将在这里显示</p>
+                            <a href="{% url 'tasks:create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>创建第一个任务
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.timeline-content {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-left: 15px;
+    position: relative;
+}
+
+.timeline-content::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 15px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #e9ecef;
+}
+
+.timeline-content::after {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 15px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid white;
+}
+
+.timeline-title {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.timeline-description {
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.timeline-time {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.bg-primary .timeline-marker {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.bg-success .timeline-marker {
+    background: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.bg-warning .timeline-marker {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.bg-info .timeline-marker {
+    background: #0dcaf0;
+    border-color: #0dcaf0;
+    color: #212529;
+}
+</style>
+
+<script>
+function applyFilters() {
+    const activityType = document.getElementById('activityType').value;
+    const dateRange = document.getElementById('dateRange').value;
+    const boardFilter = document.getElementById('boardFilter').value;
+    const searchActivity = document.getElementById('searchActivity').value.toLowerCase();
+    
+    const params = new URLSearchParams();
+    
+    if (activityType) params.append('type', activityType);
+    if (dateRange) params.append('date', dateRange);
+    if (boardFilter) params.append('board', boardFilter);
+    if (searchActivity) params.append('search', searchActivity);
+    
+    window.location.search = params.toString();
+}
+
+function exportActivity() {
+    const params = new URLSearchParams(window.location.search);
+    params.append('export', 'csv');
+    
+    window.location.href = window.location.pathname + '?' + params.toString();
+}
+
+// 图表初始化（如果需要的话）
+document.addEventListener('DOMContentLoaded', function() {
+    // 可以添加活动统计图表
+    console.log('用户活动页面已加载');
+});
+</script>
+{% endblock %}

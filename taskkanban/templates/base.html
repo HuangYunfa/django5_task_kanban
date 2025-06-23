@@ -107,7 +107,7 @@
                                     <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cogs"></i> 管理后台</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                 {% endif %}
-                                <li><a class="dropdown-item" href="{% url 'account_login' %}"><i class="fas fa-exchange-alt"></i> 切换账号</a></li>
+                                <li><a class="dropdown-item" href="{% url 'users:switch_account' %}"><i class="fas fa-exchange-alt"></i> 切换账号</a></li>
                                 <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
                             </ul>
                         </li>{% else %}

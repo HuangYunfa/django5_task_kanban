@@ -254,12 +254,11 @@
                         <i class="fas fa-bolt me-2"></i>{% trans "快速操作" %}
                     </h5>
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-outline-primary">
+                <div class="card-body">                    <div class="d-grid gap-2">
+                        <a href="{% url 'tasks:list' %}?team={{ team.pk }}" class="btn btn-outline-primary">
                             <i class="fas fa-tasks me-2"></i>{% trans "查看团队任务" %}
                         </a>
-                        <a href="#" class="btn btn-outline-info">
+                        <a href="{% url 'reports:index' %}?team={{ team.pk }}" class="btn btn-outline-info">
                             <i class="fas fa-chart-bar me-2"></i>{% trans "团队报表" %}
                         </a>
                         {% if is_admin %}

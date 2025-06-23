@@ -3,6 +3,7 @@ API URL配置
 """
 
 from django.urls import path, include
+from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
 from drf_spectacular.views import (
     SpectacularAPIView, 
@@ -27,8 +28,12 @@ router.register(r'teams', TeamViewSet)
 router.register(r'reports', ReportViewSet)
 
 urlpatterns = [
+    # API根路径重定向到文档
+    path('', RedirectView.as_view(url='docs/', permanent=False), name='api-root'),
+    
     # API文档
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('schema/swagger-ui/', RedirectView.as_view(url='../docs/', permanent=False), name='schema-swagger-ui-redirect'),
     path('docs/', SpectacularSwaggerView.as_view(url_name='api:schema'), name='swagger-ui'),
     path('redoc/', SpectacularRedocView.as_view(url_name='api:schema'), name='redoc'),
     

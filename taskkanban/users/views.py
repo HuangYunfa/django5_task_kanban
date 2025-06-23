@@ -4,6 +4,7 @@ Users应用视图
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView
+from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import get_user_model, login, logout, authenticate
 from django.contrib.auth.views import (
@@ -432,3 +433,12 @@ def user_list_api(request):
         })
     
     return JsonResponse(user_list, safe=False)
+
+
+class SwitchAccountView(LoginRequiredMixin, View):
+    """切换账号视图 - 退出当前用户并跳转到登录页"""
+    
+    def get(self, request):
+        logout(request)
+        messages.info(request, _('您已成功退出，请登录其他账号。'))
+        return redirect('account_login')

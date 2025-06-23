@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}用户偏好设置{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-cog text-primary me-2"></i>
+                    偏好设置
+                </h1>
+                <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>返回资料
+                </a>
+            </div>
+
+            <form method="post" id="preferencesForm">
+                {% csrf_token %}
+                
+                <!-- 通用设置 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sliders-h me-2"></i>通用设置
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="language" class="form-label">界面语言</label>
+                                <select id="language" name="language" class="form-select">
+                                    <option value="zh-cn" {% if preferences.language == 'zh-cn' %}selected{% endif %}>简体中文</option>
+                                    <option value="en" {% if preferences.language == 'en' %}selected{% endif %}>English</option>
+                                    <option value="zh-tw" {% if preferences.language == 'zh-tw' %}selected{% endif %}>繁體中文</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="timezone" class="form-label">时区</label>
+                                <select id="timezone" name="timezone" class="form-select">
+                                    <option value="Asia/Shanghai" {% if preferences.timezone == 'Asia/Shanghai' %}selected{% endif %}>中国标准时间 (UTC+8)</option>
+                                    <option value="UTC" {% if preferences.timezone == 'UTC' %}selected{% endif %}>协调世界时 (UTC)</option>
+                                    <option value="America/New_York" {% if preferences.timezone == 'America/New_York' %}selected{% endif %}>美国东部时间</option>
+                                    <option value="Europe/London" {% if preferences.timezone == 'Europe/London' %}selected{% endif %}>格林威治时间</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label for="theme" class="form-label">主题</label>
+                                <select id="theme" name="theme" class="form-select">
+                                    <option value="light" {% if preferences.theme == 'light' %}selected{% endif %}>浅色主题</option>
+                                    <option value="dark" {% if preferences.theme == 'dark' %}selected{% endif %}>深色主题</option>
+                                    <option value="auto" {% if preferences.theme == 'auto' %}selected{% endif %}>跟随系统</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="items_per_page" class="form-label">每页显示条数</label>
+                                <select id="items_per_page" name="items_per_page" class="form-select">
+                                    <option value="10" {% if preferences.items_per_page == 10 %}selected{% endif %}>10条</option>
+                                    <option value="20" {% if preferences.items_per_page == 20 %}selected{% endif %}>20条</option>
+                                    <option value="50" {% if preferences.items_per_page == 50 %}selected{% endif %}>50条</option>
+                                    <option value="100" {% if preferences.items_per_page == 100 %}selected{% endif %}>100条</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 通知设置 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bell me-2"></i>通知设置
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" 
+                                           {% if preferences.email_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="email_notifications">
+                                        邮件通知
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="browser_notifications" name="browser_notifications" 
+                                           {% if preferences.browser_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="browser_notifications">
+                                        浏览器通知
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="task_assigned_notification" name="task_assigned_notification" 
+                                           {% if preferences.task_assigned_notification %}checked{% endif %}>
+                                    <label class="form-check-label" for="task_assigned_notification">
+                                        任务分配通知
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="task_updated_notification" name="task_updated_notification" 
+                                           {% if preferences.task_updated_notification %}checked{% endif %}>
+                                    <label class="form-check-label" for="task_updated_notification">
+                                        任务更新通知
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="board_shared_notification" name="board_shared_notification" 
+                                           {% if preferences.board_shared_notification %}checked{% endif %}>
+                                    <label class="form-check-label" for="board_shared_notification">
+                                        看板共享通知
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="team_invitation_notification" name="team_invitation_notification" 
+                                           {% if preferences.team_invitation_notification %}checked{% endif %}>
+                                    <label class="form-check-label" for="team_invitation_notification">
+                                        团队邀请通知
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label for="notification_frequency" class="form-label">通知频率</label>
+                            <select id="notification_frequency" name="notification_frequency" class="form-select">
+                                <option value="instant" {% if preferences.notification_frequency == 'instant' %}selected{% endif %}>即时通知</option>
+                                <option value="daily" {% if preferences.notification_frequency == 'daily' %}selected{% endif %}>每日摘要</option>
+                                <option value="weekly" {% if preferences.notification_frequency == 'weekly' %}selected{% endif %}>每周摘要</option>
+                                <option value="never" {% if preferences.notification_frequency == 'never' %}selected{% endif %}>从不</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 工作偏好 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-briefcase me-2"></i>工作偏好
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="default_board_view" class="form-label">默认看板视图</label>
+                                <select id="default_board_view" name="default_board_view" class="form-select">
+                                    <option value="kanban" {% if preferences.default_board_view == 'kanban' %}selected{% endif %}>看板视图</option>
+                                    <option value="list" {% if preferences.default_board_view == 'list' %}selected{% endif %}>列表视图</option>
+                                    <option value="calendar" {% if preferences.default_board_view == 'calendar' %}selected{% endif %}>日历视图</option>
+                                    <option value="gantt" {% if preferences.default_board_view == 'gantt' %}selected{% endif %}>甘特图</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="work_hours_start" class="form-label">工作开始时间</label>
+                                <input type="time" id="work_hours_start" name="work_hours_start" class="form-control" 
+                                       value="{{ preferences.work_hours_start|default:'09:00' }}">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label for="work_hours_end" class="form-label">工作结束时间</label>
+                                <input type="time" id="work_hours_end" name="work_hours_end" class="form-control" 
+                                       value="{{ preferences.work_hours_end|default:'18:00' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="auto_assign_tasks" class="form-label">自动分配任务</label>
+                                <select id="auto_assign_tasks" name="auto_assign_tasks" class="form-select">
+                                    <option value="never" {% if preferences.auto_assign_tasks == 'never' %}selected{% endif %}>从不</option>
+                                    <option value="created_by_me" {% if preferences.auto_assign_tasks == 'created_by_me' %}selected{% endif %}>我创建的任务</option>
+                                    <option value="all" {% if preferences.auto_assign_tasks == 'all' %}selected{% endif %}>所有相关任务</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="show_completed_tasks" name="show_completed_tasks" 
+                                       {% if preferences.show_completed_tasks %}checked{% endif %}>
+                                <label class="form-check-label" for="show_completed_tasks">
+                                    默认显示已完成任务
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 隐私设置 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>隐私设置
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="profile_public" name="profile_public" 
+                                   {% if preferences.profile_public %}checked{% endif %}>
+                            <label class="form-check-label" for="profile_public">
+                                公开个人资料
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="activity_public" name="activity_public" 
+                                   {% if preferences.activity_public %}checked{% endif %}>
+                            <label class="form-check-label" for="activity_public">
+                                公开活动记录
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="allow_mentions" name="allow_mentions" 
+                                   {% if preferences.allow_mentions %}checked{% endif %}>
+                            <label class="form-check-label" for="allow_mentions">
+                                允许他人@提及我
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault()">
+                        <i class="fas fa-undo me-1"></i>恢复默认设置
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-secondary me-2" onclick="window.history.back()">
+                            取消
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>保存设置
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// 表单提交处理
+document.getElementById('preferencesForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>保存中...';
+    submitBtn.disabled = true;
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 显示成功消息
+            showAlert('设置已保存成功！', 'success');
+            // 可选：刷新页面以应用主题等设置
+            if (data.reload_required) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } else {
+            showAlert('保存失败：' + (data.error || '未知错误'), 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('保存失败，请稍后重试', 'danger');
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+function resetToDefault() {
+    if (confirm('确定要恢复所有设置到默认值吗？')) {
+        fetch('/users/preferences/reset/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('设置已恢复为默认值', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('恢复失败：' + (data.error || '未知错误'), 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('恢复失败，请稍后重试', 'danger');
+        });
+    }
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// 主题预览
+document.getElementById('theme').addEventListener('change', function() {
+    const theme = this.value;
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+});
+</script>
+{% endblock %}

@@ -7,11 +7,11 @@ from . import views
 
 app_name = 'users'
 
-urlpatterns = [
-    # 用户认证
+urlpatterns = [    # 用户认证
     path('register/', views.UserRegisterView.as_view(), name='register'),
     path('login/', views.UserLoginView.as_view(), name='login'),
     path('logout/', views.UserLogoutView.as_view(), name='logout'),
+    path('switch-account/', views.SwitchAccountView.as_view(), name='switch_account'),
     
     # 密码管理
     path('password/reset/', views.CustomPasswordResetView.as_view(), name='password_reset'),

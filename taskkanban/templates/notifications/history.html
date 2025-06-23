@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}通知历史{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-history text-primary me-2"></i>
+                    通知历史
+                </h1>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="markAllAsRead()">
+                        <i class="fas fa-check-double me-1"></i>全部标为已读
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="clearHistory()">
+                        <i class="fas fa-trash me-1"></i>清空历史
+                    </button>
+                </div>
+            </div>
+
+            <!-- 筛选选项 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">状态筛选</label>
+                            <select id="statusFilter" class="form-select" onchange="applyFilters()">
+                                <option value="">全部</option>
+                                <option value="unread">未读</option>
+                                <option value="read">已读</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="typeFilter" class="form-label">类型筛选</label>
+                            <select id="typeFilter" class="form-select" onchange="applyFilters()">
+                                <option value="">全部类型</option>
+                                <option value="task_assigned">任务分配</option>
+                                <option value="task_updated">任务更新</option>
+                                <option value="board_shared">看板共享</option>
+                                <option value="team_invitation">团队邀请</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateFilter" class="form-label">时间筛选</label>
+                            <select id="dateFilter" class="form-select" onchange="applyFilters()">
+                                <option value="">全部时间</option>
+                                <option value="today">今天</option>
+                                <option value="week">本周</option>
+                                <option value="month">本月</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="searchInput" class="form-label">搜索</label>
+                            <input type="text" id="searchInput" class="form-control" placeholder="搜索通知内容..." onkeyup="applyFilters()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 通知列表 -->
+            <div class="card">
+                <div class="card-body">
+                    {% if notifications %}
+                        <div id="notificationsList">
+                            {% for notification in notifications %}
+                                <div class="notification-item {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
+                                    <div class="d-flex align-items-start">
+                                        <div class="flex-shrink-0">
+                                            {% if notification.notification_type == 'task_assigned' %}
+                                                <i class="fas fa-tasks text-primary"></i>
+                                            {% elif notification.notification_type == 'task_updated' %}
+                                                <i class="fas fa-edit text-warning"></i>
+                                            {% elif notification.notification_type == 'board_shared' %}
+                                                <i class="fas fa-share text-success"></i>
+                                            {% elif notification.notification_type == 'team_invitation' %}
+                                                <i class="fas fa-users text-info"></i>
+                                            {% else %}
+                                                <i class="fas fa-bell text-secondary"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1">{{ notification.title }}</h6>
+                                                    <p class="mb-1 text-muted">{{ notification.message }}</p>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        {{ notification.created_at|timesince }}前
+                                                    </small>
+                                                </div>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">                                                        {% if not notification.is_read %}
+                                                            <li><a class="dropdown-item" href="#" onclick="markAsRead('{{ notification.id }}')">标为已读</a></li>
+                                                        {% else %}
+                                                            <li><a class="dropdown-item" href="#" onclick="markAsUnread('{{ notification.id }}')">标为未读</a></li>
+                                                        {% endif %}
+                                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteNotification('{{ notification.id }}')">删除</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if not forloop.last %}<hr class="my-3">{% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <!-- 分页 -->
+                        {% if is_paginated %}
+                            <nav aria-label="通知分页" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1">&laquo; 首页</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+                                        </li>
+                                    {% endif %}
+
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">末页 &raquo;</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">暂无通知历史</h5>
+                            <p class="text-muted">您的通知记录将在这里显示</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.notification-item {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.notification-item.unread {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-left: 4px solid #0d6efd;
+}
+
+.notification-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.notification-item.unread:hover {
+    background-color: rgba(13, 110, 253, 0.08);
+}
+</style>
+
+<script>
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    
+    // 这里应该发送AJAX请求到后端进行筛选
+    // 简化版本：重新加载页面并传递筛选参数
+    const params = new URLSearchParams();
+    
+    if (statusFilter) params.append('status', statusFilter);
+    if (typeFilter) params.append('type', typeFilter);
+    if (dateFilter) params.append('date', dateFilter);
+    if (searchInput) params.append('search', searchInput);
+    
+    window.location.search = params.toString();
+}
+
+function markAsRead(notificationId) {
+    fetch(`/notifications/mark-read/${notificationId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function markAsUnread(notificationId) {
+    fetch(`/notifications/mark-unread/${notificationId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function markAllAsRead() {
+    if (confirm('确定要将所有通知标为已读吗？')) {
+        fetch('/notifications/mark-all-read/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function clearHistory() {
+    if (confirm('确定要清空所有通知历史吗？此操作不可撤销。')) {
+        fetch('/notifications/clear-history/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function deleteNotification(notificationId) {
+    if (confirm('确定要删除这条通知吗？')) {
+        fetch(`/notifications/delete/${notificationId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
