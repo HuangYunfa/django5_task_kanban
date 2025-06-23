@@ -86,6 +86,12 @@ python -m tools.debug.debug_login
 
 # 运行修复工具
 python -m tools.fixes.verify_fixes
+
+# 生成演示截图 (需要先启动开发服务器)
+python tools/demo/create_screenshots.py
+
+# 优化看板卡片样式并截图
+python tools/demo/fix_board_cards_style.py
 ```
 
 ## 文档与资源
@@ -97,6 +103,39 @@ python -m tools.fixes.verify_fixes
 
 ## 参与贡献
 欢迎提交 issue 或 PR，一起完善系统功能！
+
+## 产品截图展示
+
+以下是系统主要功能模块的截图展示：
+
+### 首页
+![首页](docs/screenshots/demo/homepage.png)
+
+### 工作台
+![工作台](docs/screenshots/demo/dashboard.png)
+
+### 看板管理
+![看板管理 - 优化版](docs/screenshots/demo/boards.png)
+
+*注: 看板卡片使用了自定义样式，提供更好的用户体验和视觉效果*
+
+### 看板详情
+![看板详情](docs/screenshots/demo/board_detail.png)
+
+### 任务管理
+![任务管理](docs/screenshots/demo/tasks.png)
+
+### 团队管理
+![团队管理](docs/screenshots/demo/teams.png)
+
+### 报表分析
+![报表分析](docs/screenshots/demo/reports.png)
+
+### API文档
+![API文档](docs/screenshots/demo/api_docs.png)
+
+### 用户资料
+![用户资料](docs/screenshots/demo/user_profile.png)
 
 ## License
 MIT
