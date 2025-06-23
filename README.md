@@ -24,7 +24,7 @@
    ```
 2. 安装依赖
    ```shell
-   pip install -r requirements/requirements.txt
+   pip install -r requirements/dev.txt
    ```
 3. 数据库迁移
    ```shell
