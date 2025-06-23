@@ -20,10 +20,14 @@
         <!-- 行动按钮 -->
         <div class="text-center mb-5">
             {% if user.is_authenticated %}
-                <div class="alert alert-info mb-4">
-                    <i class="fas fa-info-circle me-2"></i>
-                    欢迎回来，{{ user.get_full_name|default:user.username }}！您已成功登录系统。
-                </div>
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-info mb-4 fade show" role="alert" id="login-welcome-alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
                 <a href="{% url 'common:dashboard' %}" class="btn btn-primary btn-lg me-3">
                     <i class="fas fa-tachometer-alt me-2"></i>
                     进入工作台
@@ -43,6 +47,61 @@
                 </a>
             {% endif %}
         </div>
+        <script>
+        // 自动淡出欢迎提示
+        window.addEventListener('DOMContentLoaded', function() {
+            var alert = document.getElementById('login-welcome-alert');
+            if(alert) {
+                setTimeout(function() {
+                    alert.classList.remove('show');
+                    alert.classList.add('fade');
+                    setTimeout(function(){ alert.style.display = 'none'; }, 500);
+                }, 3000);
+            }
+        });
+        </script>        <!-- 我的待办与提醒（替换系统状态栏） -->
+        {% if user.is_authenticated %}
+        <div class="card shadow-sm mb-5">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-7 border-end pending-tasks">
+                        <h5 class="mb-3"><i class="fas fa-clipboard-list text-primary me-2"></i>我的待办任务 <span class="badge bg-primary">本周</span></h5>
+                        {% if my_todos %}
+                        <ul class="list-group list-group-flush">
+                            {% for task in my_todos %}
+                            <li class="list-group-item d-flex align-items-center justify-content-between">
+                                <div>
+                                    <i class="fas fa-circle me-2 {% if task.is_overdue %}text-danger{% elif task.due_date and task.due_date|date:'Y-m-d' == today|date:'Y-m-d' %}text-warning{% else %}text-success{% endif %}"></i>
+                                    <a href="{% url 'tasks:detail' task.pk %}" class="text-decoration-none">{{ task.title }}</a>
+                                    {% if task.due_date %}<span class="ms-2 small text-muted">({{ task.due_date|date:'m-d' }})</span>{% endif %}
+                                </div>
+                                <span class="badge bg-light text-dark">{{ task.get_status_display }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="text-muted">暂无本周待办任务</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-5 important-notifications">
+                        <h5 class="mb-3"><i class="fas fa-bell text-warning me-2"></i>重要通知</h5>
+                        {% if my_notifications %}
+                        <ul class="list-group list-group-flush">
+                            {% for notice in my_notifications %}
+                            <li class="list-group-item">
+                                <span class="fw-bold">{{ notice.subject }}</span>
+                                <div class="small text-muted">{{ notice.send_at|date:'m-d H:i' }}</div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="text-muted">暂无新通知</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- 功能特性 -->
         <div class="row g-4 mb-5">
@@ -87,42 +146,6 @@
                         </div>
                         <h5 class="card-title">移动友好</h5>
                         <p class="card-text text-muted">响应式设计，随时随地管理任务</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 系统状态 -->
-<div class="row mt-5">
-    <div class="col-12">
-        <div class="card border-0 bg-light">
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-6 col-md-3">
-                        <div class="border-end">
-                            <h4 class="mb-1 text-primary">Django 5.2</h4>
-                            <small class="text-muted">框架版本</small>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border-end">
-                            <h4 class="mb-1 text-success">
-                                <i class="fas fa-check-circle"></i>
-                            </h4>
-                            <small class="text-muted">系统状态</small>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="border-end">
-                            <h4 class="mb-1 text-info">v1.0</h4>
-                            <small class="text-muted">当前版本</small>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <h4 class="mb-1 text-warning">24/7</h4>
-                        <small class="text-muted">技术支持</small>
                     </div>
                 </div>
             </div>

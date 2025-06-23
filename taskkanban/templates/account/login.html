@@ -156,6 +156,13 @@
         </div>
         
         <div class="auth-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info fade show" id="login-page-alert" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
             {% if form.non_field_errors %}
                 <div class="alert alert-danger">
                     {{ form.non_field_errors }}
@@ -232,4 +239,16 @@
         </div>
     </div>
 </div>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    var alert = document.getElementById('login-page-alert');
+    if(alert) {
+        setTimeout(function() {
+            alert.classList.remove('show');
+            alert.classList.add('fade');
+            setTimeout(function(){ alert.style.display = 'none'; }, 500);
+        }, 3000);
+    }
+});
+</script>
 {% endblock %}

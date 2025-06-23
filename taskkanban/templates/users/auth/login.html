@@ -141,10 +141,12 @@
 
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {% if forloop.first %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" id="login-page-alert" role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
+                {% endif %}
             {% endfor %}
         {% endif %}
 
@@ -215,4 +217,16 @@
         </div>
     </div>
 </div>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    var alert = document.getElementById('login-page-alert');
+    if(alert) {
+        setTimeout(function() {
+            alert.classList.remove('show');
+            alert.classList.add('fade');
+            setTimeout(function(){ alert.style.display = 'none'; }, 500);
+        }, 3000);
+    }
+});
+</script>
 {% endblock %}

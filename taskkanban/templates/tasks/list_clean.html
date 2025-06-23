@@ -20,18 +20,19 @@
                 <div class="btn-group" role="group">
                     <a href="{% url 'tasks:create' %}" class="btn btn-primary btn-lg">
                         <i class="fas fa-plus me-2"></i>新建任务
-                    </a>                    <button class="btn btn-light btn-lg dropdown-toggle" data-bs-toggle="dropdown">
+                    </a>
+                    <button class="btn btn-light btn-lg dropdown-toggle" data-bs-toggle="dropdown">
                         <i class="fas fa-tools me-1"></i>更多
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="alert('功能开发中')">
+                        <li><a class="dropdown-item" href="{% url 'tasks:import' %}">
                             <i class="fas fa-upload me-2"></i>导入任务
                         </a></li>
-                        <li><a class="dropdown-item" href="#" onclick="alert('功能开发中')">
+                        <li><a class="dropdown-item" href="{% url 'tasks:export' %}">
                             <i class="fas fa-download me-2"></i>导出数据
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" onclick="alert('功能开发中')">
+                        <li><a class="dropdown-item" href="{% url 'tasks:templates' %}">
                             <i class="fas fa-copy me-2"></i>任务模板
                         </a></li>
                     </ul>
@@ -184,8 +185,9 @@
         <h5 class="mb-0">
             <input type="checkbox" id="selectAll" class="form-check-input me-2">
             任务列表 ({{ tasks.count }} 个任务)
-        </h5>        <div class="btn-group">
-            <button class="btn btn-sm btn-primary" onclick="toggleView('table')">
+        </h5>
+        <div class="btn-group">
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleView('table')">
                 <i class="fas fa-table me-1"></i>表格视图
             </button>
             <button class="btn btn-sm btn-outline-secondary" onclick="toggleView('card')">
@@ -193,11 +195,11 @@
             </button>
         </div>
     </div>
-    <div class="card-body p-0">        {% if tasks %}
-        <!-- 表格视图 -->
-        <div class="table-responsive" id="tableView">
+    <div class="card-body p-0">
+        {% if tasks %}
+        <div class="table-responsive">
             <table class="table table-hover mb-0 task-list">
-                <thead class="bg-primary text-white">
+                <thead class="table-light">
                     <tr>
                         <th width="40">
                             <input type="checkbox" id="selectAllTable" class="form-check-input">
@@ -213,7 +215,7 @@
                 </thead>
                 <tbody>
                     {% for task in tasks %}
-                    <tr class="bg-white">
+                    <tr>
                         <td>
                             <input type="checkbox" class="form-check-input task-checkbox" 
                                    value="{{ task.id }}">
@@ -286,80 +288,6 @@
                 </tbody>
             </table>
         </div>
-          <!-- 卡片视图 -->
-        <div class="row g-3 p-3" id="cardView" style="display: none;">
-            {% for task in tasks %}
-            <div class="col-md-6 col-lg-4">
-                <div class="card task-card h-100 bg-white border shadow-sm">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input task-checkbox" 
-                                   value="{{ task.id }}" id="task{{ task.id }}">
-                            <label class="form-check-label fw-bold" for="task{{ task.id }}">
-                                {{ task.title|truncatechars:30 }}
-                            </label>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
-                                    data-bs-toggle="dropdown">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'tasks:detail' task.id %}">
-                                    <i class="fas fa-eye me-2"></i>查看
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'tasks:edit' task.id %}">
-                                    <i class="fas fa-edit me-2"></i>编辑
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteTask({{ task.id }})">
-                                    <i class="fas fa-trash me-2"></i>删除
-                                </a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        {% if task.description %}
-                        <p class="card-text text-muted small">{{ task.description|truncatechars:100 }}</p>
-                        {% endif %}
-                        
-                        <div class="task-meta mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge status-{{ task.status }}">
-                                    {{ task.get_status_display }}
-                                </span>
-                                <span class="badge priority-{{ task.priority }}">
-                                    {{ task.get_priority_display }}
-                                </span>
-                            </div>
-                            
-                            {% if task.assignee %}
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="{{ task.assignee.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
-                                     class="assignee-avatar me-2" alt="Avatar">
-                                <span class="small">{{ task.assignee.get_full_name|default:task.assignee.username }}</span>
-                            </div>
-                            {% endif %}
-                            
-                            {% if task.due_date %}
-                            <div class="small text-muted">
-                                <i class="fas fa-calendar me-1"></i>
-                                <span class="{% if task.is_overdue %}text-danger{% elif task.is_due_soon %}text-warning{% endif %}">
-                                    {{ task.due_date|date:"Y-m-d" }}
-                                </span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar" style="width: {{ task.progress }}%"></div>
-                        </div>
-                        <small class="text-muted">进度: {{ task.progress }}%</small>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
         {% else %}
         <div class="empty-state text-center py-5">
             <i class="fas fa-tasks text-muted fa-3x mb-3"></i>
@@ -420,11 +348,6 @@
     .status-done { background-color: #28a745; color: white; }
     .status-blocked { background-color: #dc3545; color: white; }
     
-    .priority-low { background-color: #17a2b8; color: white; }
-    .priority-normal { background-color: #6c757d; color: white; }
-    .priority-high { background-color: #fd7e14; color: white; }
-    .priority-urgent { background-color: #dc3545; color: white; }
-    
     .assignee-avatar {
         width: 24px;
         height: 24px;
@@ -449,50 +372,6 @@
         margin-bottom: 20px;
         animation: slideDown 0.3s ease-in-out;
     }
-      .task-card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border: 1px solid #e9ecef;
-        background-color: white !important;
-    }
-    
-    .task-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    }
-    
-    .task-card .card-body {
-        background-color: white !important;
-    }
-    
-    .task-card .card-header {
-        background-color: #f8f9fa !important;
-        border-bottom: 1px solid #e9ecef;
-    }
-    
-    .task-meta {
-        font-size: 0.9rem;
-    }
-      .bg-primary th {
-        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
-        color: white !important;
-        border: none !important;
-        font-weight: 600 !important;
-    }
-    
-    .table thead th {
-        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
-        color: white !important;
-        border: none !important;
-        font-weight: 600 !important;
-    }
-    
-    .table tbody tr {
-        transition: background-color 0.2s ease;
-    }
-    
-    .table tbody tr:hover {
-        background-color: #f8f9fa !important;
-    }
     
     @keyframes slideDown {
         from {
@@ -511,25 +390,18 @@
 <script src="{% static 'js/batch-operations.js' %}"></script>
 <script>
 // 初始化批量操作组件
-document.addEventListener('DOMContentLoaded', function() {    // 切换视图
+document.addEventListener('DOMContentLoaded', function() {
+    // 切换视图
     window.toggleView = function(viewType) {
-        const tableView = document.getElementById('tableView');
-        const cardView = document.getElementById('cardView');
-        const tableBtn = document.querySelector('button[onclick="toggleView(\'table\')"]');
-        const cardBtn = document.querySelector('button[onclick="toggleView(\'card\')"]');
+        const tableView = document.querySelector('.table-responsive');
+        const cardView = document.querySelector('.card-view');
         
         if (viewType === 'table') {
             tableView.style.display = 'block';
-            cardView.style.display = 'none';
-            // 更新按钮状态
-            tableBtn.className = 'btn btn-sm btn-primary';
-            cardBtn.className = 'btn btn-sm btn-outline-secondary';
+            if (cardView) cardView.style.display = 'none';
         } else if (viewType === 'card') {
             tableView.style.display = 'none';
-            cardView.style.display = 'block';
-            // 更新按钮状态
-            tableBtn.className = 'btn btn-sm btn-outline-secondary';
-            cardBtn.className = 'btn btn-sm btn-primary';
+            if (cardView) cardView.style.display = 'block';
         }
     };
 
@@ -550,9 +422,6 @@ document.addEventListener('DOMContentLoaded', function() {    // 切换视图
             form.submit();
         }
     };
-    
-    // 初始化默认为表格视图
-    toggleView('table');
 });
 </script>
 {% endblock %}

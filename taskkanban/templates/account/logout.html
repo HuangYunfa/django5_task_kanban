@@ -122,6 +122,13 @@
         </div>
         
         <div class="auth-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info fade show" id="logout-page-alert" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
             <div class="logout-message">
                 <p>{% trans "您即将退出当前账户。" %}</p>
                 <p>{% trans "退出后您将需要重新登录才能访问系统功能。" %}</p>
@@ -150,4 +157,16 @@
         </div>
     </div>
 </div>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    var alert = document.getElementById('logout-page-alert');
+    if(alert) {
+        setTimeout(function() {
+            alert.classList.remove('show');
+            alert.classList.add('fade');
+            setTimeout(function(){ alert.style.display = 'none'; }, 500);
+        }, 3000);
+    }
+});
+</script>
 {% endblock %}

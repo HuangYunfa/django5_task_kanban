@@ -30,10 +30,10 @@ router.register(r'reports', ReportViewSet)
 urlpatterns = [
     # API根路径重定向到文档
     path('', RedirectView.as_view(url='docs/', permanent=False), name='api-root'),
-    
-    # API文档
+      # API文档
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('schema/swagger-ui/', RedirectView.as_view(url='../docs/', permanent=False), name='schema-swagger-ui-redirect'),
+    path('schema/docs/', RedirectView.as_view(url='/api/docs/', permanent=True), name='schema-docs-redirect'),
+    path('schema/swagger-ui/', RedirectView.as_view(url='/api/docs/', permanent=True), name='schema-swagger-ui-redirect'),
     path('docs/', SpectacularSwaggerView.as_view(url_name='api:schema'), name='swagger-ui'),
     path('redoc/', SpectacularRedocView.as_view(url_name='api:schema'), name='redoc'),
     

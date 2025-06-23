@@ -6,60 +6,6 @@
 
 {% block extra_css %}
 <style>
-.board-card {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
-    height: 100%;
-}
-
-.board-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.board-header {
-    height: 100px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    position: relative;
-    border-radius: 12px 12px 0 0;
-}
-
-.board-header.custom-bg {
-    background-size: cover;
-    background-position: center;
-}
-
-.board-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px 12px 0 0;
-}
-
-.board-title {
-    position: absolute;
-    bottom: 15px;
-    left: 20px;
-    color: white;
-    font-weight: 600;
-    font-size: 1.1rem;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    max-width: calc(100% - 40px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.board-stats {
-    padding: 20px;
-    background: white;
-}
-
 .board-stats .stat {
     display: flex;
     align-items: center;
@@ -129,14 +75,31 @@
 
 .board-template-badge {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    top: 8px;
+    right: 40px; /* 为下拉按钮留出空间 */
+    background: rgba(102, 126, 234, 0.95);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    z-index: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    pointer-events: none; /* 防止阻挡点击事件 */
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.board-card {
+    position: relative;
+}
+
+.board-card .dropdown {
+    z-index: 1050; /* 确保下拉菜单在最顶层 */
+}
+
+.board-card .dropdown-menu {
+    z-index: 1051;
 }
 
 .empty-state {
@@ -154,189 +117,247 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- 页面标题 -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-1">{% trans "我的看板" %}</h1>
-            <p class="text-muted mb-0">{% trans "管理您的项目和任务看板" %}</p>
-        </div>
-        <a href="{% url 'boards:create' %}" class="btn create-board-btn">
-            <i class="fas fa-plus me-2"></i>
-            {% trans "创建看板" %}
-        </a>
-    </div>
-
-    <!-- 统计卡片 -->
-    <div class="row stats-cards">
-        <div class="col-md-3 mb-3">
-            <div class="stat-card">
-                <span class="stat-number">{{ my_boards_count }}</span>
-                <div class="stat-label">{% trans "我的看板" %}</div>
+<!-- 页面头部 -->
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-0">
+                    <i class="fas fa-columns me-3"></i>
+                    看板管理
+                </h1>
+                <p class="lead mb-0">可视化工作流，高效管理项目进度</p>
             </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="stat-card">
-                <span class="stat-number">{{ team_boards_count }}</span>
-                <div class="stat-label">{% trans "团队看板" %}</div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="stat-card">
-                <span class="stat-number">{{ public_boards_count }}</span>
-                <div class="stat-label">{% trans "公开看板" %}</div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="stat-card">
-                <span class="stat-number">{{ total_boards }}</span>
-                <div class="stat-label">{% trans "总看板数" %}</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 搜索和过滤 -->
-    <div class="search-section">
-        <form method="get" class="row g-3">
-            <div class="col-md-4">
-                {{ search_form.q }}
-            </div>
-            <div class="col-md-2">
-                {{ search_form.template }}
-            </div>
-            <div class="col-md-2">
-                {{ search_form.visibility }}
-            </div>
-            <div class="col-md-2 d-flex align-items-center">
-                <div class="form-check">
-                    {{ search_form.is_closed }}
-                    <label class="form-check-label" for="{{ search_form.is_closed.id_for_label }}">
-                        {{ search_form.is_closed.label }}
-                    </label>
+            <div class="col-md-4 text-md-end">
+                <div class="btn-group" role="group">
+                    <a href="{% url 'boards:create' %}" class="btn btn-light btn-lg">
+                        <i class="fas fa-plus me-2"></i>新建看板
+                    </a>
+                    <button class="btn btn-light btn-lg dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-tools me-1"></i>更多
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-copy me-2"></i>从模板创建</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-import me-2"></i>导入看板</a></li>
+                    </ul>
                 </div>
             </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-outline-primary w-100">
-                    <i class="fas fa-search me-1"></i>
-                    {% trans "搜索" %}
+        </div>
+    </div>
+</div>
+
+<!-- 看板统计 -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3 col-6">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <div class="stats-number text-primary">{{ boards_count }}</div>
+                <div class="stats-label">我的看板</div>
+                <div class="mt-3">
+                    <i class="fas fa-columns text-primary fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <div class="stats-number text-success">{{ active_boards_count }}</div>
+                <div class="stats-label">活跃看板</div>
+                <div class="mt-3">
+                    <i class="fas fa-chart-line text-success fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <div class="stats-number text-warning">{{ total_tasks_count }}</div>
+                <div class="stats-label">总任务数</div>
+                <div class="mt-3">
+                    <i class="fas fa-tasks text-warning fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <div class="stats-number text-info">{{ team_boards_count }}</div>
+                <div class="stats-label">团队看板</div>
+                <div class="mt-3">
+                    <i class="fas fa-users text-info fa-2x"></i>
+                </div>
+            </div>    </div>
+</div>
+
+<!-- 看板搜索和筛选 -->
+<div class="search-section">
+    <form method="get" class="row g-3 align-items-center">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" class="form-control" name="q" 
+                       value="{{ request.GET.q }}" placeholder="搜索看板名称或描述">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <select class="form-select" name="status">
+                <option value="">全部状态</option>
+                <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>活跃</option>
+                <option value="archived" {% if request.GET.status == 'archived' %}selected{% endif %}>已归档</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select class="form-select" name="template">
+                <option value="">全部模板</option>
+                <option value="kanban" {% if request.GET.template == 'kanban' %}selected{% endif %}>看板</option>
+                <option value="scrum" {% if request.GET.template == 'scrum' %}selected{% endif %}>Scrum</option>
+                <option value="basic" {% if request.GET.template == 'basic' %}selected{% endif %}>基础</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="my_boards" 
+                       {% if request.GET.my_boards %}checked{% endif %} id="myBoards">
+                <label class="form-check-label" for="myBoards">
+                    我的看板
+                </label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="btn-group w-100">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i>搜索
                 </button>
+                <a href="{% url 'boards:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>清除
+                </a>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
+</div>
 
-    <!-- 看板列表 -->
-    {% if boards %}
-        <div class="row">
-            {% for board in boards %}
-            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                <div class="card board-card">
-                    <div class="board-header{% if board.background_image %} custom-bg{% endif %}"
-                         style="{% if board.background_image %}background-image: url('{{ board.background_image.url }}');{% else %}background-color: {{ board.background_color }};{% endif %}">
-                        <div class="board-overlay"></div>
-                        <div class="board-title">{{ board.name }}</div>
-                        <div class="board-template-badge">
-                            {{ board.get_template_display }}
-                        </div>
+<!-- 看板网格 -->
+<div class="row g-4">
+    {% for board in boards %}    <div class="col-md-4 col-sm-6">
+        <div class="card board-card h-100">
+            {% if board.template %}
+            <span class="board-template-badge">{{ board.get_template_display }}</span>
+            {% endif %}
+            
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0" style="max-width: 70%;">
+                    <a href="{% url 'boards:detail' board.slug %}" class="text-decoration-none">
+                        {{ board.title }}
+                    </a>
+                </h6>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'boards:edit' board.slug %}">
+                            <i class="fas fa-edit me-2"></i>编辑
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'boards:copy' board.slug %}">
+                            <i class="fas fa-copy me-2"></i>复制
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{% url 'boards:delete' board.slug %}">
+                            <i class="fas fa-trash me-2"></i>删除
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if board.description %}
+                <p class="card-text text-muted small">{{ board.description|truncatechars:80 }}</p>
+                {% endif %}
+                
+                <div class="board-stats">
+                    <div class="stat">
+                        <i class="fas fa-tasks"></i>
+                        <span>{{ board.tasks_count }} 个任务</span>
                     </div>
-                    <div class="board-stats">
-                        <div class="stat">
-                            <i class="fas fa-tasks"></i>
-                            <span>{{ board.task_count }} {% trans "个任务" %}</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-users"></i>
-                            <span>{{ board.member_count }} {% trans "个成员" %}</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-eye"></i>
-                            <span>{{ board.get_visibility_display }}</span>
-                        </div>
-                        {% if board.is_closed %}
-                        <div class="stat">
-                            <i class="fas fa-lock text-warning"></i>
-                            <span class="text-warning">{% trans "已关闭" %}</span>
-                        </div>
-                        {% endif %}
-                        <div class="stat">
-                            <i class="fas fa-clock"></i>
-                            <span>{{ board.updated_at|timesince }}{% trans "前更新" %}</span>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <a href="{% url 'boards:detail' board.slug %}" 
-                               class="btn btn-primary btn-sm w-100">
-                                {% trans "打开看板" %}
-                            </a>
-                        </div>
-                        
-                        {% if board.owner == request.user %}
-                        <div class="mt-2 d-flex gap-1">
-                            <a href="{% url 'boards:edit' board.slug %}" 
-                               class="btn btn-outline-secondary btn-sm flex-fill">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{% url 'boards:copy' board.slug %}" 
-                               class="btn btn-outline-info btn-sm flex-fill"
-                               title="{% trans '复制看板' %}">
-                                <i class="fas fa-copy"></i>
-                            </a>
-                            <a href="{% url 'boards:delete' board.slug %}" 
-                               class="btn btn-outline-danger btn-sm flex-fill"
-                               onclick="return confirm('{% trans "确定要删除这个看板吗？" %}')">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        </div>
-                        {% endif %}
+                    <div class="stat">
+                        <i class="fas fa-users"></i>
+                        <span>{{ board.members_count }} 个成员</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ board.updated_at|timesince }}前更新</span>
                     </div>
                 </div>
             </div>
-            {% endfor %}
+            <div class="card-footer">                <div class="d-flex justify-content-between align-items-center">
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'boards:detail' board.slug %}" class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>查看
+                        </a>
+                        <a href="{% url 'boards:edit' board.slug %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-edit me-1"></i>编辑
+                        </a>
+                    </div>
+                    <small class="text-muted">
+                        {% if board.is_private %}
+                        <i class="fas fa-lock" title="私有看板"></i>
+                        {% else %}
+                        <i class="fas fa-globe" title="公开看板"></i>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
         </div>
-
-        <!-- 分页 -->
-        {% if is_paginated %}
-        <nav aria-label="{% trans '看板分页' %}">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{% trans "首页" %}</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{% trans "上一页" %}</a>
-                    </li>
-                {% endif %}
-
-                <li class="page-item active">
-                    <span class="page-link">
-                        {% trans "第" %} {{ page_obj.number }} {% trans "页，共" %} {{ page_obj.paginator.num_pages }} {% trans "页" %}
-                    </span>
-                </li>
-
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{% trans "下一页" %}</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{% trans "末页" %}</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-
-    {% else %}
-        <!-- 空状态 -->
+    </div>
+    {% empty %}
+    <div class="col-12">
         <div class="empty-state">
-            <i class="fas fa-clipboard-list"></i>
-            <h3>{% trans "还没有看板" %}</h3>
-            <p>{% trans "创建您的第一个看板来开始管理项目和任务" %}</p>
-            <a href="{% url 'boards:create' %}" class="btn create-board-btn mt-3">
-                <i class="fas fa-plus me-2"></i>
-                {% trans "创建第一个看板" %}
+            <i class="fas fa-columns"></i>
+            <h3>暂无看板</h3>
+            <p>创建您的第一个看板，开始高效的项目管理之旅</p>
+            <a href="{% url 'boards:create' %}" class="btn btn-primary btn-lg create-board-btn">
+                <i class="fas fa-plus me-2"></i>创建看板
             </a>
         </div>
-    {% endif %}
+    </div>
+    {% endfor %}
 </div>
+
+<!-- 分页 -->
+{% if boards.has_other_pages %}
+<nav aria-label="看板分页" class="mt-5">
+    <ul class="pagination justify-content-center">
+        {% if boards.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.template %}template={{ request.GET.template }}&{% endif %}{% if request.GET.my_boards %}my_boards=on&{% endif %}page={{ boards.previous_page_number }}">&laquo; 上一页</a>
+        </li>
+        {% endif %}
+        
+        {% for num in boards.paginator.page_range %}
+        {% if boards.number == num %}
+        <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+        </li>
+        {% elif num > boards.number|add:-3 and num < boards.number|add:3 %}
+        <li class="page-item">
+            <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.template %}template={{ request.GET.template }}&{% endif %}{% if request.GET.my_boards %}my_boards=on&{% endif %}page={{ num }}">{{ num }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if boards.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.template %}template={{ request.GET.template }}&{% endif %}{% if request.GET.my_boards %}my_boards=on&{% endif %}page={{ boards.next_page_number }}">下一页 &raquo;</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

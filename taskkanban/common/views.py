@@ -7,6 +7,7 @@ from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -31,6 +32,31 @@ class IndexView(TemplateView):
         # 为已登录用户提供额外的上下文信息
         if self.request.user.is_authenticated:
             context['show_dashboard_link'] = True
+            # 登录后欢迎提示（仅登录跳转后显示一次）
+            if self.request.GET.get('welcome') == '1':
+                from django.contrib import messages
+                messages.info(self.request, f"欢迎回来，{self.request.user.get_full_name or self.request.user.username}！您已成功登录系统。")
+            # 我的待办任务（今日/本周，未完成，按截止日期排序，最多5条）
+            user = self.request.user
+            today = timezone.now().date()
+            week_end = today + timezone.timedelta(days=7-today.weekday())
+            my_todos = Task.objects.filter(
+                assignees=user,
+                status__in=['todo', 'in_progress', 'review'],
+                is_archived=False,
+                due_date__isnull=False,
+                due_date__gte=today,
+                due_date__lte=week_end
+            ).order_by('due_date')[:5]
+            context['my_todos'] = my_todos
+            # 重要通知（如有公告、系统消息，可扩展）
+            from notifications.models import EmailNotification
+            notifications = EmailNotification.objects.filter(
+                recipient=user,
+                status='sent',
+                read_at__isnull=True
+            ).order_by('-send_at')[:3]
+            context['my_notifications'] = notifications
         return context
 
 

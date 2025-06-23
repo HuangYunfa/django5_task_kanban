@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "我的通知" %} - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.notification-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0 0 12px 12px;
+}
+
+.notification-item {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.notification-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateX(2px);
+}
+
+.notification-item.unread {
+    border-left-color: #007bff;
+    background: #f8f9ff;
+}
+
+.notification-meta {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.notification-actions {
+    margin-top: 0.5rem;
+}
+
+.filter-section {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 页面头部 -->
+<div class="notification-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-0">
+                    <i class="fas fa-bell me-3"></i>
+                    我的通知
+                </h1>
+                <p class="lead mb-0">管理您的消息提醒和通知设置</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <button class="btn btn-light" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double me-1"></i>全部标为已读
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 筛选器 -->
+<div class="filter-section">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">状态筛选</label>
+            <select name="status" class="form-select">
+                <option value="">全部</option>
+                <option value="unread" {% if request.GET.status == 'unread' %}selected{% endif %}>未读</option>
+                <option value="read" {% if request.GET.status == 'read' %}selected{% endif %}>已读</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">类型筛选</label>
+            <select name="type" class="form-select">
+                <option value="">全部类型</option>
+                <option value="task_assigned" {% if request.GET.type == 'task_assigned' %}selected{% endif %}>任务分配</option>
+                <option value="task_updated" {% if request.GET.type == 'task_updated' %}selected{% endif %}>任务更新</option>
+                <option value="team_invitation" {% if request.GET.type == 'team_invitation' %}selected{% endif %}>团队邀请</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">时间范围</label>
+            <select name="period" class="form-select">
+                <option value="">全部时间</option>
+                <option value="today" {% if request.GET.period == 'today' %}selected{% endif %}>今天</option>
+                <option value="week" {% if request.GET.period == 'week' %}selected{% endif %}>本周</option>
+                <option value="month" {% if request.GET.period == 'month' %}selected{% endif %}>本月</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="fas fa-filter me-1"></i>筛选
+            </button>
+            <a href="{% url 'users:notifications' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>重置
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- 通知列表 -->
+<div class="notifications-list">
+    {% if notifications %}
+        {% for notification in notifications %}
+        <div class="notification-item {% if not notification.read %}unread{% endif %}" 
+             data-notification-id="{{ notification.id }}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">{{ notification.title }}</h6>
+                    <p class="mb-2">{{ notification.message }}</p>
+                    <div class="notification-meta">
+                        <span class="me-3">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ notification.created_at|timesince }}前
+                        </span>
+                        <span class="badge bg-{{ notification.get_type_color }}">
+                            {{ notification.get_type_display }}
+                        </span>
+                        {% if not notification.read %}
+                        <span class="badge bg-primary ms-2">未读</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="notification-actions">
+                    {% if not notification.read %}
+                    <button class="btn btn-sm btn-outline-primary" 
+                            onclick="markAsRead({{ notification.id }})">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-danger ms-1" 
+                            onclick="deleteNotification({{ notification.id }})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <!-- 分页 -->
+        {% if is_paginated %}
+        <nav aria-label="通知分页">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">上一页</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">末页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+    {% else %}
+        <!-- 空状态 -->
+        <div class="text-center py-5">
+            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">暂无通知</h4>
+            <p class="text-muted">您目前没有收到任何通知消息</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markAsRead(notificationId) {
+    fetch(`/users/notifications/${notificationId}/mark-read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const item = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            item.classList.remove('unread');
+            item.querySelector('.badge.bg-primary')?.remove();
+            item.querySelector('.btn-outline-primary')?.remove();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function markAllAsRead() {
+    if (!confirm('确定要将所有通知标记为已读吗？')) return;
+    
+    fetch('/users/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function deleteNotification(notificationId) {
+    if (!confirm('确定要删除这条通知吗？')) return;
+    
+    fetch(`/users/notifications/${notificationId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const item = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            item.remove();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// 筛选表单自动提交
+document.addEventListener('DOMContentLoaded', function() {
+    const selects = document.querySelectorAll('.filter-section select');
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}
