@@ -22,16 +22,19 @@
    ```shell
    git clone https://github.com/HuangYunfa/django5_task_kanban.git
    ```
-2. 安装依赖
+2. 参考docs里的开发环境搭建，以及快速启动指南，检查安装依赖，必须
    ```shell
    pip install -r requirements/dev.txt
    ```
-3. 数据库迁移
+3. 数据库迁移，必须
    ```shell
    python manage.py migrate
    ```
 4. 启动服务
    ```shell
+   docker-compose up -d
+   venv\Scripts\activate
+   cd taskkanban
    python manage.py runserver
    ```
 
