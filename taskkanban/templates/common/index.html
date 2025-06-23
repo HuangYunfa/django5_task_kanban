@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}欢迎使用企业级待办事项任务看板{% endblock %}
+{% block title %}欢迎使用企业级任务看板{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -15,6 +15,33 @@
             <p class="lead text-muted">
                 高效协作，精准管理，让团队工作更加井然有序
             </p>
+        </div>
+
+        <!-- 行动按钮 -->
+        <div class="text-center mb-5">
+            {% if user.is_authenticated %}
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    欢迎回来，{{ user.get_full_name|default:user.username }}！您已成功登录系统。
+                </div>
+                <a href="{% url 'common:dashboard' %}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    进入工作台
+                </a>
+                <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-user me-2"></i>
+                    个人资料
+                </a>
+            {% else %}
+                <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-user-plus me-2"></i>
+                    立即注册
+                </a>
+                <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    立即登录
+                </a>
+            {% endif %}
         </div>
 
         <!-- 功能特性 -->
@@ -63,25 +90,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- 行动按钮 -->
-        <div class="text-center">
-            {% if user.is_authenticated %}
-                <a href="{% url 'common:dashboard' %}" class="btn btn-primary btn-lg me-3">
-                    <i class="fas fa-tachometer-alt me-2"></i>
-                    进入工作台
-                </a>
-            {% else %}
-                <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg me-3">
-                    <i class="fas fa-user-plus me-2"></i>
-                    立即注册
-                </a>
-                <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">
-                    <i class="fas fa-sign-in-alt me-2"></i>
-                    登录
-                </a>
-            {% endif %}
         </div>
     </div>
 </div>

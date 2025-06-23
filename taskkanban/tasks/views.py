@@ -212,7 +212,7 @@ class TaskDetailView(LoginRequiredMixin, TaskAccessMixin, DetailView):
         return Task.objects.select_related(
             'creator', 'board', 'board_list'
         ).prefetch_related(
-            'assignees', 'labels', 'comments__author', 'attachments'
+            'assignees', 'labels', 'comments__user', 'attachments'
         )
     
     def get_context_data(self, **kwargs):

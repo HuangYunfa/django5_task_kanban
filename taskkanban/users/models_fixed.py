@@ -63,13 +63,13 @@ class User(AbstractUser):
     
     def get_avatar_url(self):
         """获取头像URL"""
-        try:
-            if self.avatar and hasattr(self.avatar, 'url'):
+        if self.avatar and hasattr(self.avatar, 'url'):
+            try:
                 return self.avatar.url
-        except (ValueError, OSError, AttributeError):
-            # 如果头像文件不存在或损坏，返回默认头像
-            pass
-        return '/static/images/default-avatar.svg'
+            except (ValueError, OSError):
+                # 如果头像文件不存在或损坏，返回默认头像
+                return '/static/images/default-avatar.png'
+        return '/static/images/default-avatar.png'
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

@@ -178,9 +178,8 @@
                             </div>
 
                             <div class="change-meta">
-                                <div class="d-flex align-items-center mb-2">
-                                    {% if history.changed_by.profile.avatar %}
-                                        <img src="{{ history.changed_by.profile.avatar.url }}" 
+                                <div class="d-flex align-items-center mb-2">                                    {% if history.changed_by.profile.avatar %}
+                                        <img src="{{ history.changed_by.profile.get_avatar_url }}" 
                                              class="user-avatar" alt="{{ history.changed_by.get_full_name|default:history.changed_by.username }}">
                                     {% else %}
                                         <div class="user-avatar bg-secondary d-flex align-items-center justify-content-center">

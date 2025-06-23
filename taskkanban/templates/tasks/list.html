@@ -263,8 +263,7 @@
                         
                         {% if task.assignees.exists %}
                         <div class="d-flex">
-                            {% for assignee in task.assignees.all|slice:":3" %}
-                            <img src="{{ assignee.avatar.url|default:'/static/images/default-avatar.png' }}" 
+                            {% for assignee in task.assignees.all|slice:":3" %}                            <img src="{{ assignee.get_avatar_url }}" 
                                  class="task-avatar" title="{{ assignee.get_display_name }}">
                             {% endfor %}
                             {% if task.assignees.count > 3 %}

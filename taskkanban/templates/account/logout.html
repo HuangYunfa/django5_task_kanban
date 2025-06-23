@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "退出登录" %} - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-width: 400px;
+        width: 100%;
+        margin: 0 1rem;
+    }
+    
+    .auth-header {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        padding: 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .auth-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .auth-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+    
+    .auth-body {
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .logout-message {
+        margin-bottom: 2rem;
+        color: #374151;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    
+    .logout-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .auth-links {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .auth-links a {
+        color: #667eea;
+        text-decoration: none;
+    }
+    
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1><i class="fas fa-sign-out-alt me-2"></i>{% trans "退出登录" %}</h1>
+            <p>{% trans "确认要退出您的账户吗？" %}</p>
+        </div>
+        
+        <div class="auth-body">
+            <div class="logout-message">
+                <p>{% trans "您即将退出当前账户。" %}</p>
+                <p>{% trans "退出后您将需要重新登录才能访问系统功能。" %}</p>
+            </div>
+            
+            <div class="logout-actions">
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-sign-out-alt"></i>{% trans "确认退出" %}
+                    </button>
+                </form>
+                
+                <a href="{% url 'common:dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>{% trans "取消" %}
+                </a>
+            </div>
+            
+            <div class="auth-links">
+                <p>
+                    <a href="{% url 'common:index' %}">
+                        <i class="fas fa-home me-1"></i>{% trans "返回首页" %}
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

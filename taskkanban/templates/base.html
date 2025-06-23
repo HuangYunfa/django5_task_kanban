@@ -10,19 +10,117 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- 自定义CSS -->
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">    <!-- 下拉菜单修复内联样式 -->
+    <style id="dropdown-fix-css-inline">
+        /* 超高优先级强制确保下拉菜单可见 */
+        .dropdown-menu.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            z-index: 999999 !important;
+            position: fixed !important;
+            transform: none !important;
+            clip: unset !important;
+        }
+        
+        /* 确保所有菜单项都可见 */
+        .dropdown-menu.show .dropdown-item, 
+        .dropdown-menu.show .dropdown-header,
+        .dropdown-menu.show .dropdown-divider {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* 修复容器溢出问题 */
+        body, html, .container, .navbar, .navbar-collapse, .navbar-nav, .nav-item, .dropdown {
+            overflow: visible !important;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="/">任务看板</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <a class="navbar-brand" href="{% if user.is_authenticated %}{% url 'common:dashboard' %}{% else %}{% url 'common:index' %}{% endif %}">
+                <i class="fas fa-tasks me-1"></i>任务看板
+            </a>            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+            <div class="collapse navbar-collapse" id="navbarNav">                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'common:index' %}"><i class="fas fa-home"></i> 首页</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'common:dashboard' %}"><i class="fas fa-tachometer-alt"></i> 工作台</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'boards:list' %}"><i class="fas fa-columns"></i> 看板</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'tasks:list' %}"><i class="fas fa-tasks"></i> 任务</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'teams:list' %}"><i class="fas fa-users"></i> 团队</a>
+                        </li>                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'reports:index' %}"><i class="fas fa-chart-bar"></i> 报表</a>
+                        </li>                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="apiDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-code"></i> API
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="apiDropdown">
+                                <li><a class="dropdown-item" href="/api/"><i class="fas fa-plug"></i> API根目录</a></li>
+                                <li><a class="dropdown-item" href="/api/schema/swagger-ui/"><i class="fas fa-book"></i> API文档</a></li>
+                                <li><a class="dropdown-item" href="/api/v1/"><i class="fas fa-terminal"></i> API v1</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                <span class="badge bg-danger" id="notification-count" style="display: none;">0</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown">
+                                <li><h6 class="dropdown-header">通知中心</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'notifications:preferences' %}"><i class="fas fa-cog"></i> 通知设置</a></li>
+                                <li><a class="dropdown-item" href="{% url 'notifications:history' %}"><i class="fas fa-history"></i> 通知历史</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><span class="dropdown-item-text text-muted">暂无新通知</span></li>
+                            </ul>
+                        </li><li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle"></i> {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{% url 'users:profile' %}"><i class="fas fa-user"></i> 个人资料</a></li>
+                                <li><a class="dropdown-item" href="{% url 'users:settings' %}"><i class="fas fa-cog"></i> 账户设置</a></li>
+                                <li><a class="dropdown-item" href="{% url 'notifications:preferences' %}"><i class="fas fa-bell"></i> 通知设置</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if user.is_staff or user.is_superuser %}
+                                    <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cogs"></i> 管理后台</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{% url 'account_login' %}"><i class="fas fa-exchange-alt"></i> 切换账号</a></li>
+                                <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
+                            </ul>
+                        </li>{% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'common:index' %}"><i class="fas fa-home"></i> 首页</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'account_login' %}"><i class="fas fa-sign-in-alt"></i> 登录</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'account_signup' %}"><i class="fas fa-user-plus"></i> 注册</a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -55,6 +153,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- 自定义JS -->
     <script src="{% static 'js/main.js' %}"></script>
+    <!-- 下拉菜单修复脚本 -->
+    <script src="{% static 'js/dropdown-fix.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

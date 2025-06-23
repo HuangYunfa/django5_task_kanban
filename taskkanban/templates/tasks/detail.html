@@ -221,13 +221,8 @@
                     <!-- 添加评论 -->
                     <form id="commentForm" class="mb-4">
                         {% csrf_token %}                        <div class="d-flex">
-                            {% if user.avatar %}
-                            <img src="{{ user.avatar.url }}" 
+                            <img src="{{ user.get_avatar_url }}" 
                                  class="assignee-avatar me-2">
-                            {% else %}
-                            <img src="{% static 'images/default-avatar.png' %}" 
-                                 class="assignee-avatar me-2">
-                            {% endif %}
                             <div class="flex-grow-1">
                                 {{ comment_form.content }}
                                 <div class="mt-2">
@@ -243,13 +238,8 @@
                     <div id="activities">
                         {% for activity in activities %}
                         <div class="activity-item">                            <div class="d-flex">
-                                {% if activity.author.avatar %}
-                                <img src="{{ activity.author.avatar.url }}" 
+                                <img src="{{ activity.author.get_avatar_url }}" 
                                      class="assignee-avatar me-2">
-                                {% else %}
-                                <img src="{% static 'images/default-avatar.png' %}" 
-                                     class="assignee-avatar me-2">
-                                {% endif %}
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <strong>{{ activity.author.get_display_name }}</strong>
@@ -318,13 +308,8 @@
 
                 <div class="mb-3">
                     <strong>{% trans "创建者" %}</strong>                    <div class="mt-1 d-flex align-items-center">
-                        {% if task.creator.avatar %}
-                        <img src="{{ task.creator.avatar.url }}" 
+                        <img src="{{ task.creator.get_avatar_url }}" 
                              class="assignee-avatar me-2">
-                        {% else %}
-                        <img src="{% static 'images/default-avatar.png' %}" 
-                             class="assignee-avatar me-2">
-                        {% endif %}
                         {{ task.creator.get_display_name }}
                     </div>
                 </div>
@@ -335,13 +320,8 @@
                 <h6>{% trans "分配情况" %}</h6>
                 {% if task.assignees.exists %}
                     {% for assignee in task.assignees.all %}                    <div class="d-flex align-items-center mb-2">
-                        {% if assignee.avatar %}
-                        <img src="{{ assignee.avatar.url }}" 
+                        <img src="{{ assignee.get_avatar_url }}" 
                              class="assignee-avatar me-2">
-                        {% else %}
-                        <img src="{% static 'images/default-avatar.png' %}" 
-                             class="assignee-avatar me-2">
-                        {% endif %}
                         <span>{{ assignee.get_display_name }}</span>
                     </div>
                     {% endfor %}

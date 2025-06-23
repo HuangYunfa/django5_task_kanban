@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "注册" %} - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-width: 450px;
+        width: 100%;
+        margin: 0 1rem;
+    }
+    
+    .auth-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .auth-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .auth-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+    
+    .auth-body {
+        padding: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .btn-primary {
+        width: 100%;
+        padding: 0.75rem;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+    }
+    
+    .auth-links {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .auth-links a {
+        color: #10b981;
+        text-decoration: none;
+    }
+    
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+    
+    .alert {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        border: 1px solid transparent;
+    }
+    
+    .alert-danger {
+        background-color: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+    
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+        color: #dc2626;
+        font-size: 0.875rem;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1><i class="fas fa-user-plus me-2"></i>{% trans "用户注册" %}</h1>
+            <p>{% trans "创建您的账户以开始使用系统" %}</p>
+        </div>
+        
+        <div class="auth-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.username.id_for_label }}">
+                        {{ form.username.label }}
+                    </label>
+                    {{ form.username }}
+                    {% if form.username.help_text %}
+                        <div class="help-text">{{ form.username.help_text }}</div>
+                    {% endif %}
+                    {% if form.username.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.username.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}">
+                        {{ form.email.label }}
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.help_text %}
+                        <div class="help-text">{{ form.email.help_text }}</div>
+                    {% endif %}
+                    {% if form.email.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.email.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.password1.id_for_label }}">
+                        {{ form.password1.label }}
+                    </label>
+                    {{ form.password1 }}
+                    {% if form.password1.help_text %}
+                        <div class="help-text">{{ form.password1.help_text }}</div>
+                    {% endif %}
+                    {% if form.password1.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.password1.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.password2.id_for_label }}">
+                        {{ form.password2.label }}
+                    </label>
+                    {{ form.password2 }}
+                    {% if form.password2.help_text %}
+                        <div class="help-text">{{ form.password2.help_text }}</div>
+                    {% endif %}
+                    {% if form.password2.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.password2.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-2"></i>{% trans "立即注册" %}
+                </button>
+            </form>
+            
+            <div class="auth-links">
+                <p>
+                    {% trans "已有账户？" %} 
+                    <a href="{% url 'account_login' %}">{% trans "立即登录" %}</a>
+                </p>
+                <p>
+                    <a href="{% url 'common:index' %}">
+                        <i class="fas fa-arrow-left me-1"></i>{% trans "返回首页" %}
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

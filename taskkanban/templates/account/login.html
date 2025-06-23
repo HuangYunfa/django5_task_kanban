@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "登录" %} - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-width: 400px;
+        width: 100%;
+        margin: 0 1rem;
+    }
+    
+    .auth-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .auth-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .auth-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+    
+    .auth-body {
+        padding: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-primary {
+        width: 100%;
+        padding: 0.75rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+    }
+    
+    .auth-links {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .auth-links a {
+        color: #667eea;
+        text-decoration: none;
+    }
+    
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+    
+    .alert {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        border: 1px solid transparent;
+    }
+    
+    .alert-danger {
+        background-color: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+    
+    .alert-success {
+        background-color: #f0fdf4;
+        border-color: #bbf7d0;
+        color: #16a34a;
+    }
+    
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+        color: #dc2626;
+        font-size: 0.875rem;
+    }
+    
+    .remember-me {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .remember-me input[type="checkbox"] {
+        width: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1><i class="fas fa-sign-in-alt me-2"></i>{% trans "用户登录" %}</h1>
+            <p>{% trans "登录您的账户以继续使用系统" %}</p>
+        </div>
+        
+        <div class="auth-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.login.id_for_label }}">
+                        {{ form.login.label }}
+                    </label>
+                    {{ form.login }}
+                    {% if form.login.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.login.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.password.id_for_label }}">
+                        {{ form.password.label }}
+                    </label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.password.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                {% if form.remember %}
+                    <div class="remember-me">
+                        {{ form.remember }}
+                        <label for="{{ form.remember.id_for_label }}">{{ form.remember.label }}</label>
+                    </div>
+                {% endif %}
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt me-2"></i>{% trans "立即登录" %}
+                </button>
+            </form>
+            
+            <div class="auth-links">
+                <p>
+                    <a href="{% url 'account_reset_password' %}">{% trans "忘记密码？" %}</a>
+                </p>
+                <p>
+                    {% trans "还没有账户？" %} 
+                    <a href="{% url 'account_signup' %}">{% trans "立即注册" %}</a>
+                </p>
+                <p>
+                    <a href="{% url 'common:index' %}">
+                        <i class="fas fa-arrow-left me-1"></i>{% trans "返回首页" %}
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
