@@ -7,19 +7,41 @@
 import asyncio
 import os
 import sys
-from playwright.async_api import async_playwright
 import time
+from playwright.async_api import async_playwright
 
 
 async def test_workflow_ui_basic():
     """基础UI测试 - 无需Django LiveServer"""
     print("🎭 启动Playwright浏览器测试...")
+    print("💡 注意：确保Django开发服务器正在运行 (python manage.py runserver)")
+    print("⏰ 浏览器将在3秒后启动...")
+    await asyncio.sleep(3)
     
-    async with async_playwright() as p:
-        # 启动浏览器
-        browser = await p.chromium.launch(headless=False)  # 设置为False可以看到浏览器
-        context = await browser.new_context()
+    async with async_playwright() as p:        # 启动浏览器 - 确保可见模式
+        print("🔧 启动Chrome浏览器 (可见模式)...")
+        print("💡 请注意：Chrome浏览器窗口将在几秒钟内出现...")
+        
+        browser = await p.chromium.launch(
+            headless=False,  # 可见模式
+            slow_mo=1500,    # 每个操作间隔1.5秒，便于观察
+            args=[
+                '--start-maximized',  # 最大化窗口
+                '--disable-web-security',  # 禁用同源策略限制
+                '--disable-features=VizDisplayCompositor',  # 修复某些显示问题
+                '--no-sandbox',  # 在某些环境中需要                '--disable-dev-shm-usage',  # 避免共享内存问题
+                '--disable-blink-features=AutomationControlled',  # 避免被检测为自动化
+            ]
+        )
+        
+        context = await browser.new_context(
+            viewport={'width': 1920, 'height': 1080}  # 设置窗口大小
+        )
         page = await context.new_page()
+        print("✅ Chrome浏览器已启动 (可见模式)")
+        print("⏳ 等待5秒让浏览器完全加载和显示...")
+        print("👀 请观察Chrome浏览器窗口，应该已经出现在屏幕上")
+        await asyncio.sleep(5)  # 等待5秒让用户看到浏览器启动
         
         try:
             # 访问Django应用首页
@@ -55,15 +77,14 @@ async def test_workflow_ui_basic():
             if await username_field.is_visible():
                 # 使用之前创建的超级用户
                 await username_field.fill('huangyunfa')
-                await password_field.fill('huangyunfa123')  # 假设密码
+                await password_field.fill('demo123456')  # 假设密码
                 
                 submit_btn = page.locator('input[type="submit"]')
                 await submit_btn.click()
                 
                 await page.wait_for_load_state('networkidle')
-                
-                # 检查是否登录成功
-                if 'admin' in await page.url():
+                  # 检查是否登录成功
+                if 'admin' in page.url:
                     print("   ✅ 用户登录成功")
                     await page.screenshot(path='screenshots/admin_dashboard.png')
                     
@@ -74,7 +95,7 @@ async def test_workflow_ui_basic():
                     await page.goto('http://127.0.0.1:8000/tasks/workflow/statuses/ui/')
                     await page.wait_for_load_state('networkidle')
                     
-                    current_url = await page.url()
+                    current_url = page.url
                     print(f"   📍 当前URL: {current_url}")
                     
                     # 检查工作流页面元素
@@ -142,9 +163,18 @@ async def test_workflow_responsiveness():
     print("\n📱 测试响应式设计...")
     
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        print("🔧 启动Chrome浏览器进行响应式测试...")
+        browser = await p.chromium.launch(
+            headless=False,  # 可见模式
+            slow_mo=2000,    # 响应式测试时间间隔更长
+            args=[
+                '--start-maximized',
+                '--disable-web-security',
+            ]
+        )
         context = await browser.new_context()
         page = await context.new_page()
+        print("✅ 响应式测试浏览器已启动")
         
         try:
             await page.goto('http://127.0.0.1:8000/tasks/workflow/statuses/ui/')

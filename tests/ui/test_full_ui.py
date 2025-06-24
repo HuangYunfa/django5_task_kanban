@@ -23,8 +23,7 @@ def comprehensive_ui_test():
             'failed': 0,
             'errors': []
         }
-        
-        try:
+          try:
             # 1. 登录
             print("🔐 执行登录...")
             if login(page):
@@ -34,7 +33,8 @@ def comprehensive_ui_test():
                 test_results['failed'] += 1
                 test_results['errors'].append("登录失败")
                 return
-              # 2. 测试主要页面
+            
+            # 2. 测试主要页面
             pages_to_test = [
                 ("首页", "http://127.0.0.1:8000/"),
                 ("工作台", "http://127.0.0.1:8000/dashboard/"),

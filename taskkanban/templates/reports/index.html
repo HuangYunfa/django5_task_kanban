@@ -86,7 +86,8 @@
                     <small class="text-muted">较上周 +8%</small>
                 </div>
             </div>
-        </div>    </div>
+        </div>
+    </div>
 </div>
 
 <!-- 图表展示区域 -->
@@ -97,7 +98,7 @@
                 <h5 class="chart-title mb-0">任务完成趋势</h5>
             </div>
             <div class="card-body">
-                <canvas id="taskChart" height="300"></canvas>
+                <canvas id="taskCompletionChart" height="300"></canvas>
             </div>
         </div>
     </div>
@@ -107,62 +108,92 @@
                 <h5 class="mb-0">最近报表</h5>
             </div>
             <div class="card-body">
-                <div class="report-item">
-                    <div class="report-name">项目进度报表</div>
-                    <div class="report-date">2024-01-15</div>
-                </div>
-                <div class="report-item">
-                    <div class="report-name">团队效率分析</div>
-                    <div class="report-date">2024-01-12</div>
-                </div>
-                <div class="report-item">
-                    <div class="report-name">任务分布统计</div>
-                    <div class="report-date">2024-01-10</div>
-                </div>
+                {% if user_reports %}
+                    {% for report in user_reports %}
+                    <div class="report-item d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <div class="report-name fw-medium">{{ report.name }}</div>
+                            <div class="report-date text-muted small">{{ report.created_at|date:"Y-m-d H:i" }}</div>
+                        </div>
+                        <a href="{% url 'reports:detail' report.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <div class="text-muted mb-3">
+                            <i class="fas fa-chart-bar fa-3x"></i>
+                        </div>
+                        <p>您还没有创建报表</p>
+                        <a href="{% url 'reports:create' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i>创建报表
+                        </a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
 <!-- 筛选操作区域 -->
-<div class="filter-section">
-    <div class="row align-items-center">
-        <div class="col-md-8">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <select class="form-select">
-                        <option>选择时间范围</option>
-                        <option>最近7天</option>
-                        <option>最近30天</option>
-                        <option>最近90天</option>
-                    </select>
+<div class="filter-section mb-5">
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>数据筛选
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" id="reportFilterForm" class="row g-3">                <div class="col-md-3">
+                    <label for="dateRange" class="form-label">时间范围</label>
+                    {{ filter_form.time_range }}
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select">
-                        <option>选择项目</option>
-                        <option>项目A</option>
-                        <option>项目B</option>
-                        <option>项目C</option>
-                    </select>
+                    <label for="board" class="form-label">看板</label>
+                    {{ filter_form.board }}
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select">
-                        <option>选择团队</option>
-                        <option>开发团队</option>
-                        <option>设计团队</option>
-                        <option>测试团队</option>
-                    </select>
+                    <label for="team" class="form-label">团队</label>
+                    {{ filter_form.team }}
                 </div>
                 <div class="col-md-3">
-                    <button class="btn btn-primary w-100">
-                        <i class="fas fa-search me-2"></i>筛选
+                    <label for="user" class="form-label">用户</label>
+                    {{ filter_form.user }}
+                </div>
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>应用筛选
                     </button>
+                    <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-2"></i>重置
+                    </a>
                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 图表区域2 -->
+<div class="row g-4 mb-5">
+    <div class="col-md-6">
+        <div class="card chart-container h-100">
+            <div class="card-header">
+                <h5 class="chart-title mb-0">任务状态分布</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusDistributionChart" height="250"></canvas>
             </div>
         </div>
-        <div class="col-md-4 text-md-end">
-            <button class="btn btn-outline-secondary me-2">重置</button>
-            <button class="btn btn-success">导出报表</button>
+    </div>
+    <div class="col-md-6">
+        <div class="card chart-container h-100">
+            <div class="card-header">
+                <h5 class="chart-title mb-0">用户工作负载</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="userWorkloadChart" height="250"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -170,42 +201,70 @@
 
 {% block extra_css %}
 <style>
+.page-header {
+    background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.stats-card {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    border: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stats-number {
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stats-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.chart-container {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    border: none;
+}
+
 .chart-title {
     font-size: 1.1rem;
     font-weight: 600;
-    margin-bottom: 1rem;
     color: #495057;
 }
 
 .filter-section {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 1.5rem;
     margin-bottom: 2rem;
 }
 
-.recent-reports {
-    background: white;
-    border-radius: 10px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.report-item {
-    padding: 0.8rem;
-    border-left: 3px solid #007bff;
+.recent-reports .report-item {
+    padding: 0.8rem 1rem;
+    border-left: 3px solid #4e73df;
     background: #f8f9fa;
     margin-bottom: 0.8rem;
     border-radius: 0 5px 5px 0;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
 }
 
-.report-item:hover {
+.recent-reports .report-item:hover {
     background: #e9ecef;
+    border-left-color: #2e59d9;
 }
 
 .report-name {
-    font-weight: 600;
+    font-weight: 500;
     color: #495057;
 }
 
@@ -217,10 +276,89 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 引入Chart.js库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- 引入报表图表JS -->
+<script src="{% static 'js/report-charts.js' %}"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Chart initialization code here
+    // 解析后端传递的JSON数据
+    const taskCompletionData = JSON.parse('{{ chart_data.task_completion_trend|safe }}');
+    const statusDistributionData = JSON.parse('{{ chart_data.status_distribution|safe }}');
+    const userWorkloadData = JSON.parse('{{ chart_data.user_workload|safe }}');
+    
+    // 初始化任务完成趋势图表
+    if (document.getElementById('taskCompletionChart')) {
+        ReportCharts.createChart('taskCompletionChart', 'line', taskCompletionData, {
+            plugins: {
+                title: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        });
+    }
+    
+    // 初始化任务状态分布图表
+    if (document.getElementById('statusDistributionChart')) {
+        ReportCharts.createChart('statusDistributionChart', 'doughnut', statusDistributionData, {
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        });
+    }
+    
+    // 初始化用户工作负载图表
+    if (document.getElementById('userWorkloadChart')) {
+        ReportCharts.createChart('userWorkloadChart', 'bar', userWorkloadData, {
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        });
+    }
+    
+    // 筛选表单增强
+    const filterForm = document.getElementById('reportFilterForm');
+    if (filterForm) {
+        // 响应式改变
+        const teamSelect = filterForm.querySelector('select[name="team"]');
+        const boardSelect = filterForm.querySelector('select[name="board"]');
+        
+        if (teamSelect && boardSelect) {
+            teamSelect.addEventListener('change', function() {
+                // 可以在这里添加AJAX请求，根据团队筛选看板
+                // 暂时模拟实现
+                const teamId = this.value;
+                if (teamId) {
+                    // 可以发送AJAX请求获取该团队的看板
+                    console.log(`应该获取团队ID ${teamId} 的看板列表`);
+                }
+            });
+        }
+    }
 });
+
+// 导出报表功能
+function exportReport() {
+    // 获取当前筛选条件
+    const filterForm = document.getElementById('reportFilterForm');
+    const formData = new FormData(filterForm);
+    formData.append('export_format', 'excel'); // 默认Excel格式
+    
+    // 构建导出URL
+    const exportUrl = `{% url 'reports:export' %}?${new URLSearchParams(formData)}`;
+    
+    // 打开导出链接
+    window.location.href = exportUrl;
+}
 </script>
 {% endblock %}

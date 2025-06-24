@@ -4,6 +4,8 @@
 pytest>=7.4.0
 pytest-django>=4.7.0
 pytest-cov>=4.1.0
+pytest-asyncio>=0.23.0  # 支持异步测试
+pytest-xdist>=3.5.0  # 并行测试支持
 black>=23.11.0
 isort>=5.12.0
 flake8>=6.1.0
@@ -15,6 +17,8 @@ werkzeug>=3.0.0  # for runserver_plus
 # UI Testing tools
 playwright>=1.40.0
 pytest-playwright>=0.4.3
+pytest-base-url>=2.0.0  # Playwright测试URL管理
+asgiref>=3.7.0  # 异步支持
 
 # Hot reload tools
 watchdog>=3.0.0

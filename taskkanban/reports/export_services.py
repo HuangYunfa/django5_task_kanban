@@ -179,13 +179,16 @@ class ReportExportService:
         response = HttpResponse(content_type='application/json; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
+        # 构建导出数据
         export_data = {
             'title': self.report_title,
-            'generated_at': datetime.now().isoformat(),
+            'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'data': self.data
         }
         
-        json.dump(export_data, response, ensure_ascii=False, indent=2)
+        # 将数据转换为JSON
+        json_data = json.dumps(export_data, ensure_ascii=False, indent=2)
+        response.write(json_data)
         
         return response
     
