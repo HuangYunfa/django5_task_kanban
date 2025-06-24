@@ -1,7 +1,32 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
+from django import forms
 from .models import User, UserProfile
+
+
+class AdminUserForm(forms.ModelForm):
+    """
+    Admin用户表单
+    """
+    class Meta:
+        model = User
+        fields = '__all__'
+    
+    def clean_avatar(self):
+        avatar = self.cleaned_data.get('avatar')
+        if avatar:
+            # 检查文件大小（限制为5MB）
+            if hasattr(avatar, 'size') and avatar.size > 5 * 1024 * 1024:
+                raise forms.ValidationError(_('头像文件大小不能超过5MB'))
+            
+            # 检查文件类型
+            if hasattr(avatar, 'content_type'):
+                allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+                if avatar.content_type not in allowed_types:
+                    raise forms.ValidationError(_('请上传JPEG、PNG、GIF或WebP格式的图片'))
+        
+        return avatar
 
 
 @admin.register(User)
@@ -9,6 +34,7 @@ class UserAdmin(BaseUserAdmin):
     """
     自定义用户管理界面
     """
+    form = AdminUserForm
     fieldsets = (
         (None, {'fields': ('email', 'username', 'password')}),
         (_('个人信息'), {'fields': ('first_name', 'last_name', 'nickname', 'phone', 'avatar', 'bio', 'location', 'website')}),

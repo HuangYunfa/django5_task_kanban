@@ -32,6 +32,24 @@ DEBUG = env('DEBUG', default=True)
 # 强制设置ALLOWED_HOSTS以支持测试
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '*']
 
+# 邮件配置 - 使用数据库配置的邮件后端
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='core.email_backends.DatabaseConfigEmailBackend')
+# 备用配置（当数据库配置不可用时使用）
+EMAIL_HOST = env('EMAIL_HOST', default='localhost')
+EMAIL_PORT = env('EMAIL_PORT', default=25)
+EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=False)
+EMAIL_USE_SSL = env('EMAIL_USE_SSL', default=False)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# 邮件SSL设置 - 用于解决证书验证问题
+import ssl
+EMAIL_SSL_CONTEXT = ssl.create_default_context()
+EMAIL_SSL_CONTEXT.check_hostname = False
+EMAIL_SSL_CONTEXT.verify_mode = ssl.CERT_NONE
+
 
 # 应用定义
 INSTALLED_APPS = [
@@ -58,9 +76,11 @@ INSTALLED_APPS = [
     # REST API
     'rest_framework',
     'rest_framework_simplejwt',
-    'corsheaders',
-    'drf_spectacular',    # 自定义应用
+    'corsheaders',    'drf_spectacular',
+    
+    # 自定义应用
     'common',
+    'core',
     'users',
     'boards',
     'tasks',
@@ -285,14 +305,14 @@ SPECTACULAR_SETTINGS = {
 #     MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
 #     INTERNAL_IPS = ['127.0.0.1']
 
-# 邮件配置
-EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = env('EMAIL_PORT', default=587)
+# 邮件配置 - 使用自定义后端
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='utils.custom_email_backend.CustomSMTPBackend')
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.lvyuetravel.com')
+EMAIL_PORT = env('EMAIL_PORT', default=80)  # 使用您原始代码中的端口
 EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@taskkanban.com')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='LYtech@lvyuetravel.com')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='LVyue.123456')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='LYtech@lvyuetravel.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # 邮件通知相关配置

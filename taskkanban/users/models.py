@@ -3,6 +3,23 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 import os
+import uuid
+from datetime import datetime
+
+
+def user_avatar_upload_path(instance, filename):
+    """
+    生成用户头像上传路径
+    格式: avatars/user_{user_id}/{timestamp}_{uuid}.{ext}
+    """
+    # 获取文件扩展名
+    ext = filename.split('.')[-1].lower()
+    # 生成新的文件名: 时间戳_UUID
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    unique_id = str(uuid.uuid4())[:8]
+    new_filename = f"{timestamp}_{unique_id}.{ext}"
+    # 返回完整路径
+    return f"avatars/user_{instance.id or 'new'}/{new_filename}"
 
 
 class User(AbstractUser):
@@ -12,7 +29,7 @@ class User(AbstractUser):
     # 基本信息
     email = models.EmailField(_('邮箱地址'), unique=True)
     phone = models.CharField(_('手机号码'), max_length=20, blank=True, null=True)
-    avatar = models.ImageField(_('头像'), upload_to='avatars/', blank=True, null=True)
+    avatar = models.ImageField(_('头像'), upload_to=user_avatar_upload_path, blank=True, null=True)
     
     # 个人信息
     nickname = models.CharField(_('昵称'), max_length=50, blank=True, null=True)
@@ -63,15 +80,33 @@ class User(AbstractUser):
     
     def get_avatar_url(self):
         """获取头像URL"""
-        try:
-            if self.avatar and hasattr(self.avatar, 'url'):
+        if self.avatar and hasattr(self.avatar, 'url'):
+            try:
                 return self.avatar.url
-        except (ValueError, OSError, AttributeError):
-            # 如果头像文件不存在或损坏，返回默认头像
-            pass
-        return '/static/images/default-avatar.svg'
+            except (ValueError, OSError):
+                # 如果头像文件不存在或损坏，返回默认头像
+                return '/static/images/default-avatar.png'
+        return '/static/images/default-avatar.png'
     
     def save(self, *args, **kwargs):
+        # 如果是更新现有用户且头像发生变化，删除旧头像
+        if self.pk:
+            try:
+                old_user = User.objects.get(pk=self.pk)
+                if old_user.avatar and old_user.avatar != self.avatar:
+                    # 删除旧头像文件
+                    if os.path.isfile(old_user.avatar.path):
+                        os.remove(old_user.avatar.path)
+                        # 尝试删除空的用户头像目录
+                        try:
+                            avatar_dir = os.path.dirname(old_user.avatar.path)
+                            if os.path.isdir(avatar_dir) and not os.listdir(avatar_dir):
+                                os.rmdir(avatar_dir)
+                        except:
+                            pass
+            except User.DoesNotExist:
+                pass
+        
         super().save(*args, **kwargs)
         
         # 处理头像缩放

@@ -62,21 +62,48 @@ class UserRegisterView(CreateView):
     
     def send_verification_email(self, user):
         """发送邮箱验证邮件"""
-        current_site = get_current_site(self.request)
-        subject = _('验证您的邮箱地址')
-        message = render_to_string('users/emails/email_verification.html', {
-            'user': user,
-            'domain': current_site.domain,
-            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-            'token': default_token_generator.make_token(user),
-            'protocol': 'https' if self.request.is_secure() else 'http',
-        })
-        
         try:
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
-            messages.info(self.request, _('验证邮件已发送到您的邮箱，请查收。'))
+            current_site = get_current_site(self.request)
+            subject = _('验证您的邮箱地址')
+            
+            # 检查当前邮件后端配置
+            if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
+                messages.info(self.request, _(
+                    '验证邮件已生成并输出到控制台。'
+                    '请检查运行Django的终端窗口查看邮件内容。'
+                ))
+            
+            # 准备邮件上下文
+            email_context = {
+                'user': user,
+                'domain': current_site.domain,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': default_token_generator.make_token(user),
+                'protocol': 'https' if self.request.is_secure() else 'http',
+            }
+            
+            # 渲染HTML和文本版本邮件
+            html_message = render_to_string('users/emails/email_verification.html', email_context)
+            text_message = render_to_string('users/emails/email_verification.txt', email_context)
+            
+            # 发送邮件
+            result = send_mail(
+                subject=subject,
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+                html_message=html_message
+            )
+            
+            if result and settings.EMAIL_BACKEND != 'django.core.mail.backends.console.EmailBackend':
+                messages.info(self.request, _('验证邮件已发送到您的邮箱，请查收。'))
+                
         except Exception as e:
-            messages.warning(self.request, _('邮件发送失败，请稍后重试。'))
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"注册时邮件发送失败: {str(e)}")
+            messages.warning(self.request, _('邮件发送失败，您可以稍后在个人资料页面重新发送验证邮件。'))
 
 
 class UserLoginView(LoginView):
@@ -157,13 +184,25 @@ def email_verify(request, uidb64, token):
         user = None
     
     if user is not None and default_token_generator.check_token(user, token):
+        # 验证成功
         user.email_verified = True
-        user.save()
-        messages.success(request, _('邮箱验证成功！'))
+        user.save(update_fields=['email_verified'])
+        messages.success(request, _('邮箱验证成功！您现在可以使用完整的系统功能。'))
+        
+        # 自动登录用户 - 指定认证后端
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
         login(request, user)
-        return redirect('common:dashboard')
+        
+        # 重定向到用户资料页面而不是dashboard
+        return redirect('users:profile')
     else:
-        messages.error(request, _('邮箱验证链接无效或已过期。'))
+        # 验证失败
+        messages.error(request, _('邮箱验证链接无效或已过期。请重新获取验证邮件。'))
+        
+        # 如果用户存在但token无效，提供重新发送的选项
+        if user is not None:
+            messages.info(request, _('您可以登录后在个人资料页面重新发送验证邮件。'))
+        
         return redirect('users:login')
 
 
@@ -304,25 +343,91 @@ def ajax_user_search(request):
 def resend_verification_email(request):
     """重新发送验证邮件"""
     if request.method == 'POST' and request.user.is_authenticated:
-        if not request.user.email_verified:
-            # 重新发送验证邮件的逻辑
+        user = request.user
+        
+        # 检查邮箱是否已验证
+        if user.email_verified:
+            messages.info(request, _('您的邮箱已经验证过了。'))
+            return redirect('users:profile')
+        
+        # 检查是否有邮箱地址
+        if not user.email:
+            messages.error(request, _('您还没有设置邮箱地址，请先在个人资料中添加邮箱。'))
+            return redirect('users:profile')
+        
+        # 检查邮件发送频率限制（防止频繁发送）
+        from django.core.cache import cache
+        cache_key = f'email_resend_{user.id}'
+        if cache.get(cache_key):
+            messages.warning(request, _('邮件发送过于频繁，请稍等片刻再试。'))
+            return redirect('users:profile')
+        
+        try:
+            # 生成验证链接
             current_site = get_current_site(request)
             subject = _('验证您的邮箱地址')
-            message = render_to_string('users/emails/email_verification.html', {
-                'user': request.user,
-                'domain': current_site.domain,
-                'uid': urlsafe_base64_encode(force_bytes(request.user.pk)),
-                'token': default_token_generator.make_token(request.user),
-                'protocol': 'https' if request.is_secure() else 'http',
-            })
             
-            try:
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [request.user.email])
-                messages.success(request, _('验证邮件已重新发送，请查收。'))
-            except Exception as e:
+            # 检查当前邮件后端配置
+            if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
+                # 如果使用console后端，提醒用户
+                messages.warning(request, _(
+                    '当前系统配置为开发模式，邮件将输出到控制台而不会实际发送。'
+                    '如需实际接收邮件，请联系管理员配置邮件服务器。'
+                ))
+            
+            # 渲染邮件内容
+            email_context = {
+                'user': user,
+                'domain': current_site.domain,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': default_token_generator.make_token(user),
+                'protocol': 'https' if request.is_secure() else 'http',
+            }
+            
+            # 渲染HTML邮件内容
+            html_message = render_to_string('users/emails/email_verification.html', email_context)
+            
+            # 渲染纯文本邮件内容（备用）
+            text_message = render_to_string('users/emails/email_verification.txt', email_context)
+            
+            # 发送邮件
+            result = send_mail(
+                subject=subject,
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+                html_message=html_message
+            )
+            
+            if result:
+                # 设置发送频率限制（5分钟内不能重复发送）
+                cache.set(cache_key, True, 300)  # 5分钟
+                
+                if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
+                    messages.success(request, _(
+                        '验证邮件已生成并输出到控制台。'
+                        '请检查运行Django的终端窗口查看邮件内容。'
+                    ))
+                else:
+                    messages.success(request, _('验证邮件已重新发送到 {}，请查收。').format(user.email))
+            else:
                 messages.error(request, _('邮件发送失败，请稍后重试。'))
-        else:
-            messages.info(request, _('您的邮箱已经验证过了。'))
+                
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"邮件发送失败: {str(e)}")
+            
+            # 根据具体错误类型给出不同提示
+            if 'Authentication' in str(e):
+                messages.error(request, _('邮件服务器认证失败，请联系管理员检查邮件配置。'))
+            elif 'Connection' in str(e):
+                messages.error(request, _('无法连接到邮件服务器，请检查网络连接或联系管理员。'))
+            else:
+                messages.error(request, _('邮件发送失败：{}').format(str(e)))
+    else:
+        messages.error(request, _('无效的请求。'))
     
     return redirect('users:profile')
 

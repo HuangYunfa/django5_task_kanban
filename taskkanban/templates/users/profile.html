@@ -304,14 +304,12 @@
                 <span class="breadcrumb-item active">{% trans "个人资料" %}</span>
             </nav>
         </div>
-        
-        <div class="profile-header">
+          <div class="profile-header">
             <div class="avatar-section">
-                <img src="{{ user.get_avatar_url }}" alt="{% trans '用户头像' %}" class="user-avatar">
-                <div class="avatar-overlay" onclick="document.getElementById('avatar-upload').click()">
+                <img src="{{ user.get_avatar_url }}" alt="{% trans '用户头像' %}" class="user-avatar" id="avatar-preview">
+                <div class="avatar-overlay" onclick="triggerAvatarUpload()">
                     <i class="fas fa-camera"></i>
                 </div>
-                <input type="file" id="avatar-upload" style="display: none;" accept="image/*">
             </div>
             
             <div class="user-info">
@@ -453,6 +451,108 @@
                         </div>
                         {% endif %}
                         
+                        {% if form.avatar %}
+                        <div class="form-group">
+                            <label for="{{ form.avatar.id_for_label }}">
+                                {{ form.avatar.label }}
+                            </label>
+                            {{ form.avatar }}
+                            {% if form.avatar.help_text %}
+                                <small class="help-text">{{ form.avatar.help_text }}</small>
+                            {% endif %}
+                            {% if form.avatar.errors %}
+                                <div class="form-errors">
+                                    {{ form.avatar.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.phone %}
+                        <div class="form-group">
+                            <label for="{{ form.phone.id_for_label }}">
+                                {{ form.phone.label }}
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.help_text %}
+                                <small class="help-text">{{ form.phone.help_text }}</small>
+                            {% endif %}
+                            {% if form.phone.errors %}
+                                <div class="form-errors">
+                                    {{ form.phone.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.location %}
+                        <div class="form-group">
+                            <label for="{{ form.location.id_for_label }}">
+                                {{ form.location.label }}
+                            </label>
+                            {{ form.location }}
+                            {% if form.location.help_text %}
+                                <small class="help-text">{{ form.location.help_text }}</small>
+                            {% endif %}
+                            {% if form.location.errors %}
+                                <div class="form-errors">
+                                    {{ form.location.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.website %}
+                        <div class="form-group">
+                            <label for="{{ form.website.id_for_label }}">
+                                {{ form.website.label }}
+                            </label>
+                            {{ form.website }}
+                            {% if form.website.help_text %}
+                                <small class="help-text">{{ form.website.help_text }}</small>
+                            {% endif %}
+                            {% if form.website.errors %}
+                                <div class="form-errors">
+                                    {{ form.website.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.language %}
+                        <div class="form-group">
+                            <label for="{{ form.language.id_for_label }}">
+                                {{ form.language.label }}
+                            </label>
+                            {{ form.language }}
+                            {% if form.language.help_text %}
+                                <small class="help-text">{{ form.language.help_text }}</small>
+                            {% endif %}
+                            {% if form.language.errors %}
+                                <div class="form-errors">
+                                    {{ form.language.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.timezone %}
+                        <div class="form-group">
+                            <label for="{{ form.timezone.id_for_label }}">
+                                {{ form.timezone.label }}
+                            </label>
+                            {{ form.timezone }}
+                            {% if form.timezone.help_text %}
+                                <small class="help-text">{{ form.timezone.help_text }}</small>
+                            {% endif %}
+                            {% if form.timezone.errors %}
+                                <div class="form-errors">
+                                    {{ form.timezone.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-2"></i>
@@ -547,6 +647,14 @@
 
 {% block extra_js %}
 <script>
+    function triggerAvatarUpload() {
+        // 触发表单中的头像字段
+        const avatarField = document.querySelector('input[name="avatar"]');
+        if (avatarField) {
+            avatarField.click();
+        }
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
         // 为表单控件添加样式类
         const formControls = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
@@ -554,14 +662,19 @@
             control.classList.add('form-control');
         });
         
-        // 头像上传功能
-        const avatarUpload = document.getElementById('avatar-upload');
-        if (avatarUpload) {
-            avatarUpload.addEventListener('change', function(e) {
+        // 头像上传预览功能
+        const avatarField = document.querySelector('input[name="avatar"]');
+        const avatarPreview = document.getElementById('avatar-preview');
+        
+        if (avatarField && avatarPreview) {
+            avatarField.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
-                    // 这里可以添加头像预览和上传逻辑
-                    console.log('选择的文件:', file.name);
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        avatarPreview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
                 }
             });
         }
