@@ -1,3 +1,8 @@
+<div align="left" style='background-color:#0000ff'>
+  <img src="logo.png" alt="Logo" width="auto" height="30">
+</div>
+
+
 # django5_task_kanban
 
 ## 项目简介

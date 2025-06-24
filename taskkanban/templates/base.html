@@ -43,12 +43,11 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{% if user.is_authenticated %}{% url 'common:dashboard' %}{% else %}{% url 'common:index' %}{% endif %}">
-                <i class="fas fa-tasks me-1"></i>任务看板
-            </a>            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <!-- 导航栏 -->    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">            <a class="navbar-brand d-flex align-items-center" href="{% if user.is_authenticated %}{% url 'common:dashboard' %}{% else %}{% url 'common:index' %}{% endif %}">
+                <img src="{% static 'images/logo.png' %}" alt="Logo" width="auto" height="30" class="me-2">
+                <span><i class="fas fa-tasks me-1"></i>任务看板</span>
+            </a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">                <ul class="navbar-nav me-auto">
