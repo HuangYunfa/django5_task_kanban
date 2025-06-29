@@ -49,7 +49,7 @@ async def test_reports_analysis_ui():
             
             if await username_field.is_visible():
                 await username_field.fill('huangyunfa')
-                await password_field.fill('Lvyue.033271')
+                await password_field.fill('demo123456')
                 
                 submit_btn = page.locator('button[type="submit"], input[type="submit"]')
                 await submit_btn.click()
@@ -194,7 +194,7 @@ async def test_reports_chart_interactions():
             # 登录并访问仪表板
             await page.goto('http://127.0.0.1:8000/accounts/login/')
             await page.fill('input[name="login"], input[name="username"]', 'huangyunfa')
-            await page.fill('input[name="password"]', 'Lvyue.033271')
+            await page.fill('input[name="password"]', 'demo123456')
             await page.click('button[type="submit"], input[type="submit"]')
             await page.wait_for_load_state('networkidle')
             

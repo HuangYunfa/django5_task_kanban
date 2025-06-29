@@ -307,12 +307,12 @@ SPECTACULAR_SETTINGS = {
 
 # 邮件配置 - 使用自定义后端
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='utils.custom_email_backend.CustomSMTPBackend')
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.lvyuetravel.com')
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.163.com')
 EMAIL_PORT = env('EMAIL_PORT', default=80)  # 使用您原始代码中的端口
 EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='LYtech@lvyuetravel.com')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='LVyue.123456')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='LYtech@lvyuetravel.com')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='hugo__huang@163.com')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='demo123456')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='hugo__huang@163.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # 邮件通知相关配置
